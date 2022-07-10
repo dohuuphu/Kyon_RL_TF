@@ -41,3 +41,7 @@ def tanh(inputs, scope='tanh'):
 def softmax(inputs, scope='softmax'):
     with tf.variable_scope(scope):
         return tf.nn.softmax(inputs)
+
+def sigmoid(inputs, scope='sigmoid'):
+    with tf.variable_scope(scope):
+        return tf.nn.sigmoid(inputs)

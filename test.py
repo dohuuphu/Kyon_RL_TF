@@ -10,6 +10,8 @@ import numpy as np
 from params import test_params
 from agent import Agent
 
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior() 
 
 def test():
     # Set random seeds for reproducability

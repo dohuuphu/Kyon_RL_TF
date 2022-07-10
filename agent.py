@@ -16,8 +16,13 @@ import imageio
 from params import train_params, test_params, play_params
 from utils.network import Actor, Actor_BN
 from utils.env_wrapper import PendulumWrapper, LunarLanderContinuousWrapper, BipedalWalkerWrapper
+
+from env_kyon import SimStudent
+
 import tensorflow.compat.v1 as tf
 tf.disable_v2_behavior() 
+
+
 class Agent:
   
     def __init__(self, sess, env, seed, n_agent=0):
@@ -35,9 +40,11 @@ class Agent:
             self.env_wrapper = BipedalWalkerWrapper()
         elif env == 'BipedalWalkerHardcore-v2':
             self.env_wrapper = BipedalWalkerWrapper(hardcore=True)
+        elif env == 'kyon':
+            self.env_wrapper = SimStudent()
         else:
             raise Exception('Chosen environment does not have an environment wrapper defined. Please choose an environment with an environment wrapper defined, or create a wrapper for this environment in utils.env_wrapper.py')
-        self.env_wrapper.set_random_seed(seed*(n_agent+1))
+        # self.env_wrapper.set_random_seed(seed*(n_agent+1))
               
     def build_network(self, training):
         # Input placeholder    
@@ -118,6 +125,7 @@ class Agent:
                 if train_params.RENDER:
                     self.env_wrapper.render()
                 action = self.sess.run(self.actor_net.output, {self.state_ph:np.expand_dims(state, 0)})[0]     # Add batch dimension to single state input, and remove batch dimension from single action output
+                
                 action += (gaussian_noise() * train_params.NOISE_DECAY**num_eps)
                 next_state, reward, terminal = self.env_wrapper.step(action)
                 
@@ -207,7 +215,8 @@ class Agent:
             while not ep_done:
                 if test_params.RENDER:
                     self.env_wrapper.render()
-                action = self.sess.run(self.actor_net.output, {self.state_ph:np.expand_dims(state, 0)})[0]     # Add batch dimension to single state input, and remove batch dimension from single action output
+                temp = np.array([1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
+                action = self.sess.run(self.actor_net.output, {self.state_ph:np.expand_dims(temp, 0)})[0]     # Add batch dimension to single state input, and remove batch dimension from single action output
                 state, reward, terminal = self.env_wrapper.step(action)
                 state = self.env_wrapper.normalise_state(state)
                 

@@ -1,3 +1,5 @@
 ckpts/*
 video/*
 logs/*
+__pycache__/
+*.log

@@ -1,12 +1,12 @@
 from utils.env_wrapper import PendulumWrapper, LunarLanderContinuousWrapper, BipedalWalkerWrapper
-
+from env_kyon import SimStudent
 class train_params:
     
     # Environment parameters
-    ENV = 'Pendulum-v0'                     # Environment to use (must have low dimensional state space (i.e. not image) and continuous action space)
+    ENV = 'kyon'                     # Environment to use (must have low dimensional state space (i.e. not image) and continuous action space)
     RENDER = False                          # Whether or not to display the environment on the screen during training
     RANDOM_SEED = 99999999                  # Random seed for reproducability
-    NUM_AGENTS = 4                          # Number of distributed agents to run simultaneously
+    NUM_AGENTS = 4                    # Number of distributed agents to run simultaneously
     
     # Create dummy environment to get all environment params
     if ENV == 'Pendulum-v0':
@@ -17,7 +17,9 @@ class train_params:
         dummy_env = BipedalWalkerWrapper()
     elif ENV == 'BipedalWalkerHardcore-v2':
         dummy_env = BipedalWalkerWrapper(hardcore=True)
-    else:
+    elif ENV == 'kyon':
+        dummy_env = SimStudent()
+    else: 
         raise Exception('Chosen environment does not have an environment wrapper defined. Please choose an environment with an environment wrapper defined, or create a wrapper for this environment in utils.env_wrapper.py')
      
     STATE_DIMS = dummy_env.get_state_dims()
@@ -38,7 +40,7 @@ class train_params:
     PRIORITY_BETA_START = 0.4       # Starting value of beta - controls to what degree IS weights influence the gradient updates to correct for the bias introduced by priority sampling (0 - no correction, 1 - full correction)
     PRIORITY_BETA_END = 1.0         # Beta will be linearly annealed from its start value to this value throughout training
     PRIORITY_EPSILON = 0.00001      # Small value to be added to updated priorities to ensure no sample has a probability of 0 of being chosen
-    NOISE_SCALE = 0.3               # Scaling to apply to Gaussian noise
+    NOISE_SCALE = 0.1               # Scaling to apply to Gaussian noise
     NOISE_DECAY = 0.9999            # Decay noise throughout training by scaling by noise_decay**training_step
     DISCOUNT_RATE = 0.99            # Discount rate (gamma) for future rewards
     N_STEP_RETURNS = 5              # Number of future steps to collect experiences for N-step returns
@@ -56,7 +58,7 @@ class train_params:
     USE_BATCH_NORM = False          # Whether or not to use batch normalisation in the networks
   
     # Files/Directories
-    SAVE_CKPT_STEP = 10000                 # Save checkpoint every save_ckpt_step training steps
+    SAVE_CKPT_STEP = 5000                # Save checkpoint every save_ckpt_step training steps
     CKPT_DIR = './ckpts/' + ENV             # Directory for saving/loading checkpoints
     CKPT_FILE = None                        # Checkpoint file to load and resume training from (if None, train from scratch)
     LOG_DIR = './logs/train/' + ENV         # Directory for saving Tensorboard logs (if None, do not save logs)
