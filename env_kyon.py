@@ -67,7 +67,7 @@ class SimStudent():
   def mask_others_lp_not_in_topic(self,topic:str):
     
     mask_masteries = LP_PER_TOPICS.copy()
-    for idx, val in enumerate(self.masteries[LP_SEGMENT[topic][0]:LP_SEGMENT[topic][1]]):
+    for idx, val in enumerate(self.true_masteries[LP_SEGMENT[topic][0]:LP_SEGMENT[topic][1]]):
       mask_masteries[idx] *= val
 
     return mask_masteries
