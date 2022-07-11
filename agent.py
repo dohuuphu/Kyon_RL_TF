@@ -176,7 +176,7 @@ class Agent:
             if num_eps % train_params.UPDATE_AGENT_EP == 0:
                 self.sess.run(self.update_op)
         
-        self.env_wrapper.close()
+        # self.env_wrapper.close()
     
     def test(self):   
         # Test a saved ckpt of actor network and save results to file (optional)
@@ -215,7 +215,7 @@ class Agent:
             while not ep_done:
                 if test_params.RENDER:
                     self.env_wrapper.render()
-                temp = np.array([1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
+                temp = np.genfromtxt('./input.txt', dtype=np.float64)
                 action = self.sess.run(self.actor_net.output, {self.state_ph:np.expand_dims(temp, 0)})[0]     # Add batch dimension to single state input, and remove batch dimension from single action output
                 state, reward, terminal = self.env_wrapper.step(action)
                 state = self.env_wrapper.normalise_state(state)

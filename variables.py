@@ -104,7 +104,7 @@ def prepare_env(path):
     
     return map_lp_topics, difficult, lessons_r, skill_names_r
 
-EXCEL_PATH = '/mnt/c/Users/dohuu/Desktop/kyons_AI/D4PG_kyon/Content Input English (Sample) - Kyons.xlsx'
+EXCEL_PATH = './Content Input English (Sample) - Kyons.xlsx'
 
 LP_SEGMENT, LP_DIFFICULT_VALUE, LESSONS, SKILL_NAMES =  prepare_env(EXCEL_PATH)
 # Number of questions per test

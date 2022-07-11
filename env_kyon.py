@@ -19,8 +19,8 @@ class SimStudent():
   def __init__(self, intelligence = 50, luck=50):
     self.observation_space = [0, 1, 35] # min max shape
     self.action_space = [0, 34, 1] # min max shape
-    self.v_min = 0.0
-    self.v_max = 35.0
+    self.v_min = -150.0
+    self.v_max = 15.0
 
     self.true_masteries = np.zeros(len(SKILL_INDS)).astype(np.float32)
 
@@ -189,7 +189,7 @@ class SimStudent():
       if self.masteries[int(action_mapping)] == 1:
         reward += -10
       else:
-        reward +=1
+        reward +=10
       log_INFO(f'action_mapping: {action_mapping}')
       if action_mapping in range(len(LESSONS)):
         self.true_masteries = self.lesson_update_masteries(action_mapping)
