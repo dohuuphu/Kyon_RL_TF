@@ -13,6 +13,9 @@ from params import train_params
 from utils.network import Actor, Actor_BN, Critic, Critic_BN
 import tensorflow.compat.v1 as tf
 tf.disable_v2_behavior()
+
+import matplotlib.pyplot as plt
+import numpy as np
           
 class Learner:
     def __init__(self, sess, PER_memory, run_agent_event, stop_agent_event):
@@ -22,6 +25,7 @@ class Learner:
         self.PER_memory = PER_memory
         self.run_agent_event = run_agent_event
         self.stop_agent_event = stop_agent_event
+        self.loss = []
         
     def build_network(self):
         
@@ -137,6 +141,10 @@ class Learner:
             TD_error, _ = self.sess.run([self.critic_net.loss, self.critic_train_step], {self.state_ph:states_batch, self.action_ph:actions_batch, self.target_Z_ph:target_Z_dist, self.target_atoms_ph:target_Z_atoms, self.weights_ph:weights_batch})   
             # Use critic TD errors to update sample priorities
             self.PER_memory.update_priorities(idx_batch, (np.abs(TD_error)+train_params.PRIORITY_EPSILON))
+
+            # Draw TD_error
+            self.loss.append(TD_error)
+            
                         
             # Actor training step
             # Get policy network's action outputs for selected states
@@ -172,4 +180,11 @@ class Learner:
                 sys.stdout.flush() 
         
         # Stop the agents
-        self.stop_agent_event.set()                            
+        self.stop_agent_event.set()     
+
+        # Save plot
+        list_loss=[]
+        for loss in self.loss:
+            list_loss.append(sum(loss)/len(loss))
+        plt.plot(np.array(list_loss))
+        plt.savefig('loss.png')                       

@@ -6,7 +6,7 @@ from collections import Counter
 
 
 
-import gym
+import random
 
 import numpy as np
 
@@ -76,7 +76,7 @@ class SimStudent():
     list_LPvalue = {}
     for topic in LP_SEGMENT: 
       start_idx, stop_idx = LP_SEGMENT[topic]
-      list_LPvalue.update({topic: {LP_VALUE_STR:[self.masteries[i] for i in range(start_idx, stop_idx, 1)],
+      list_LPvalue.update({topic: {LP_VALUE_STR:[self.true_masteries[i] for i in range(start_idx, stop_idx, 1)],
                                   LP_DIFFICULT_STR:[LP_DIFFICULT_VALUE[i] for i in range(start_idx, stop_idx, 1)]}})
 
     return list_LPvalue
@@ -166,13 +166,19 @@ class SimStudent():
       if self.true_masteries[skill]>0: new_masteries[skill] -= loss
     return [int(i) for i in new_masteries]
 
+  def is_complete_topic(self):
+    if len(self.history_topic) < 2:
+      return False
+    else:
+      return False if self.history_topic[-1] == self.history_topic[-2] else True
+
   def step(self, action):   
-    done = False
+
     action = action.astype(np.int32)
     action_mapping = LP_SEGMENT[self.history_topic[-1]][0] + action
-    check_mastered = True
-    for i,m in enumerate(self.masteries):
-      if m<SKILL_LEVELS[i]: check_mastered=False
+    # check_mastered = True
+    # for i,m in enumerate(self.true_masteries):
+    #   if m<SKILL_LEVELS[i]: check_mastered=False
 
     reward = 0
     log_INFO(f'action_before_filter: {action}')
@@ -186,7 +192,7 @@ class SimStudent():
       reward += (num_same_act-1)*(-1)
 
     else:
-      if self.masteries[int(action_mapping)] == 1:
+      if self.true_masteries[int(action_mapping)] == 1:
         reward += -10
       else:
         reward +=10
@@ -205,7 +211,7 @@ class SimStudent():
         score = self.get_test_score(test, self.true_masteries)
         log_INFO(f'test score \| masteries: {Counter(self.masteries)} - true_m {Counter(self.true_masteries)}, reward {reward}')
         if score==0: reward+=0
-        elif score==10: reward+=3 # max test score
+        elif score==10: reward+=20 # max test score
         else: 
           reward += (score-self.last_score)*0.5# - 1*penalty_weight
 
@@ -221,14 +227,13 @@ class SimStudent():
     segment_LPs = self.mask_others_lp_not_in_topic(curr_topic)
 
     # self.masteries = self.forget_update_masteries()
-    if len(self.history)==MAX_NUM_ACTIONS or check_mastered==True: done=True
     log_INFO(f'Done step \| masteries: {Counter(self.masteries)} - true_m {Counter(self.true_masteries)}, reward {reward}')
-    return self._get_obs(segment_LPs), np.array(reward, dtype=np.float32), done
+    return self._get_obs(segment_LPs), np.array(reward, dtype=np.float32), self.is_complete_topic()
 
   def reset(self):
     self.true_masteries = np.zeros(len(SKILL_INDS))
-    # for i,m in enumerate(self.true_masteries):
-    #   self.true_masteries[i] = random.randint(0,SKILL_LEVELS[i])
+    for i,m in enumerate(self.true_masteries):
+      self.true_masteries[i] = random.randint(0,SKILL_LEVELS[i])
 
     # # self.masteries = np.zeros(len(SKILL_INDS))
     # new_masteries = np.zeros(len(SKILL_INDS))

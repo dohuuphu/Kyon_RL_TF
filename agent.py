@@ -216,7 +216,8 @@ class Agent:
                 if test_params.RENDER:
                     self.env_wrapper.render()
                 temp = np.genfromtxt('./input.txt', dtype=np.float64)
-                action = self.sess.run(self.actor_net.output, {self.state_ph:np.expand_dims(temp, 0)})[0]     # Add batch dimension to single state input, and remove batch dimension from single action output
+                action, tanh = self.sess.run([self.actor_net.output, self.actor_net.output_tanh], {self.state_ph:np.expand_dims(state, 0)})#[0] # Add batch dimension to single state input, and remove batch dimension from single action output
+                action = action[0]     
                 state, reward, terminal = self.env_wrapper.step(action)
                 state = self.env_wrapper.normalise_state(state)
                 
