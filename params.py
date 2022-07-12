@@ -31,9 +31,9 @@ class train_params:
     del dummy_env
     
     # Training parameters
-    BATCH_SIZE = 124#256
-    NUM_STEPS_TRAIN = 6000       # Number of steps to train for
-    MAX_EP_LENGTH = 10000           # Maximum number of steps per episode
+    BATCH_SIZE = 256#256
+    NUM_STEPS_TRAIN = 10000       # Number of steps to train for
+    MAX_EP_LENGTH = 100000           # Maximum number of steps per episode
     REPLAY_MEM_SIZE = 10000      # Soft maximum capacity of replay memory
     REPLAY_MEM_REMOVE_STEP = 100    # Check replay memory every REPLAY_MEM_REMOVE_STEP training steps and remove samples over REPLAY_MEM_SIZE capacity
     PRIORITY_ALPHA = 0.6            # Controls the randomness vs prioritisation of the prioritised sampling (0.0 = Uniform sampling, 1.0 = Greedy prioritisation)

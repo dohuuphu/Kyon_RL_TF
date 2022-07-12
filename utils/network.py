@@ -6,7 +6,7 @@
 
 # import tensorflow as tf
 import numpy as np
-from utils.ops import dense, relu, tanh, batchnorm, softmax, sigmoid
+from utils.ops import dense, relu, tanh, batchnorm, softmax
 from utils.l2_projection import _l2_project
 import tensorflow.compat.v1 as tf
 tf.disable_v2_behavior()
@@ -235,7 +235,7 @@ class Actor_BN:
             self.output_mul = dense(self.dense2, self.action_dims, weight_init=tf.random_uniform_initializer(-1*final_layer_init, final_layer_init),
                                 bias_init=tf.random_uniform_initializer(-1*final_layer_init, final_layer_init), scope='output') 
             
-            self.output_tanh = sigmoid(self.output_mul, scope='output')
+            self.output_tanh = tanh(self.output_mul, scope='output')
             
             # Scale tanh output to lower and upper action bounds
             self.output = tf.multiply(0.5, tf.multiply(self.output_tanh, (self.action_bound_high-self.action_bound_low)) + (self.action_bound_high+self.action_bound_low))

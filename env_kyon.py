@@ -166,11 +166,12 @@ class SimStudent():
       if self.true_masteries[skill]>0: new_masteries[skill] -= loss
     return [int(i) for i in new_masteries]
 
-  def is_complete_topic(self):
-    if len(self.history_topic) < 2:
-      return False
-    else:
-      return False if self.history_topic[-1] == self.history_topic[-2] else True
+  def is_complete_topic(self, topic_name):
+    dict_LPvalue = self.get_LPvalue()
+    for value in dict_LPvalue[topic_name][LP_VALUE_STR]:
+      if value < 1 :
+        return False
+    return True    
 
   def step(self, action):   
 
@@ -182,20 +183,25 @@ class SimStudent():
 
     reward = 0
     log_INFO(f'action_before_filter: {action}')
+    # reward for predict prev_action
     if len(self.history)>0:
-      if self.history[-1]==action: reward+=-1
+      for i in range(len(self.history)-1 , -1 , -1):
+        if self.history[i]==action_mapping: 
+          reward+=-20
+        else:
+          break
 
     self.history.append(action_mapping) 
-    if action >= (LP_SEGMENT[self.history_topic[-1]][1]-LP_SEGMENT[self.history_topic[-1]][0]):
-      # reward += -3
+    if action >= (LP_SEGMENT[self.history_topic[-1]][1]-LP_SEGMENT[self.history_topic[-1]][0]) or action < 0:
+      reward += -20
       num_same_act = self.count_consecutive_actions(action_mapping)
-      reward += (num_same_act-1)*(-1)
+      # reward += (num_same_act-1)*(-1)
 
     else:
       if self.true_masteries[int(action_mapping)] == 1:
-        reward += -10
+        reward += -20
       else:
-        reward +=10
+        reward +=20
       log_INFO(f'action_mapping: {action_mapping}')
       if action_mapping in range(len(LESSONS)):
         self.true_masteries = self.lesson_update_masteries(action_mapping)
@@ -219,16 +225,20 @@ class SimStudent():
 
 
       num_same_act = self.count_consecutive_actions(action_mapping)
-      reward += (num_same_act-1)*(-1)
+      # reward += (num_same_act-1)*(-1)
 
     # self.true_masteries = self.forget_update_masteries()
 
+    # Check learing a topic is done
+    done = self.is_complete_topic(self.history_topic[-1])
+
+    # get and append new topic
     curr_topic = self.topic_recommender()
     segment_LPs = self.mask_others_lp_not_in_topic(curr_topic)
 
     # self.masteries = self.forget_update_masteries()
     log_INFO(f'Done step \| masteries: {Counter(self.masteries)} - true_m {Counter(self.true_masteries)}, reward {reward}')
-    return self._get_obs(segment_LPs), np.array(reward, dtype=np.float32), self.is_complete_topic()
+    return self._get_obs(segment_LPs), np.array(reward, dtype=np.float32), done
 
   def reset(self):
     self.true_masteries = np.zeros(len(SKILL_INDS))
@@ -245,6 +255,7 @@ class SimStudent():
     # score = self.get_test_score(test, self.true_masteries)
     self.last_score = 0
     self.history = []
+    self.history_topic = []
     curr_topic = self.topic_recommender()
     segment_LPs = self.mask_others_lp_not_in_topic(curr_topic)
     return self._get_obs(segment_LPs)

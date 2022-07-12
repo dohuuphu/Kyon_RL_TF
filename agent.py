@@ -20,6 +20,7 @@ from utils.env_wrapper import PendulumWrapper, LunarLanderContinuousWrapper, Bip
 from env_kyon import SimStudent
 
 import tensorflow.compat.v1 as tf
+from variables import LP_SEGMENT
 tf.disable_v2_behavior() 
 
 
@@ -118,6 +119,7 @@ class Agent:
             num_steps = 0
             episode_reward = 0
             ep_done = False
+            topics_done = 0
             
             while not ep_done:
                 num_steps += 1
@@ -152,6 +154,8 @@ class Agent:
                 state = next_state
                 
                 if terminal or num_steps == train_params.MAX_EP_LENGTH:
+                    # Count number Topic done
+                    topics_done+=1
                     # Log total episode reward
                     if train_params.LOG_DIR is not None:
                         summary_str = self.sess.run(self.summary_op, {self.ep_reward_var: episode_reward})
@@ -169,14 +173,21 @@ class Agent:
                         run_agent_event.wait()     
                         PER_memory.add(state_0, action_0, discounted_reward, next_state, terminal, gamma)
                     
-                    # Start next episode
-                    ep_done = True
+                    # Start next episode if all topic was passed
+                    ep_done = self.is_TopicsDone(state)
                 
             # Update agent networks with learner params every 'update_agent_ep' episodes
             if num_eps % train_params.UPDATE_AGENT_EP == 0:
                 self.sess.run(self.update_op)
         
         # self.env_wrapper.close()
+
+    def is_TopicsDone(self, state):
+        '''if all the value of state is 1 => all learning point was , vice versa'''
+        for value in state:
+            if value < 1:
+                return False
+        return True
     
     def test(self):   
         # Test a saved ckpt of actor network and save results to file (optional)
