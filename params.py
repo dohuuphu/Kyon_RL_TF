@@ -33,7 +33,7 @@ class train_params:
     # Training parameters
     BATCH_SIZE = 256#256
     NUM_STEPS_TRAIN = 10000       # Number of steps to train for
-    MAX_EP_LENGTH = 100000           # Maximum number of steps per episode
+    MAX_EP_LENGTH = 1000           # Maximum number of steps per episode
     REPLAY_MEM_SIZE = 10000      # Soft maximum capacity of replay memory
     REPLAY_MEM_REMOVE_STEP = 100    # Check replay memory every REPLAY_MEM_REMOVE_STEP training steps and remove samples over REPLAY_MEM_SIZE capacity
     PRIORITY_ALPHA = 0.6            # Controls the randomness vs prioritisation of the prioritised sampling (0.0 = Uniform sampling, 1.0 = Greedy prioritisation)
@@ -58,7 +58,7 @@ class train_params:
     USE_BATCH_NORM = False          # Whether or not to use batch normalisation in the networks
   
     # Files/Directories
-    SAVE_CKPT_STEP = NUM_STEPS_TRAIN/2                # Save checkpoint every save_ckpt_step training steps
+    SAVE_CKPT_STEP = NUM_STEPS_TRAIN                # Save checkpoint every save_ckpt_step training steps
     CKPT_DIR = './ckpts/' + ENV             # Directory for saving/loading checkpoints
     CKPT_FILE = None                        # Checkpoint file to load and resume training from (if None, train from scratch)
     LOG_DIR = './logs/train/' + ENV         # Directory for saving Tensorboard logs (if None, do not save logs)

@@ -19,8 +19,8 @@ class SimStudent():
   def __init__(self, intelligence = 50, luck=50):
     self.observation_space = [0, 1, 35] # min max shape
     self.action_space = [0, 34, 1] # min max shape
-    self.v_min = -150.0
-    self.v_max = 15.0
+    self.v_min = -1.0
+    self.v_max = 1.0
 
     self.true_masteries = np.zeros(len(SKILL_INDS)).astype(np.float32)
 
@@ -38,7 +38,7 @@ class SimStudent():
 
     # Initialize history
     self.history = []
-    self.history_topic = list()
+    self.history_topic = []
 
   #===============
   def get_state_dims(self):
@@ -57,7 +57,7 @@ class SimStudent():
     return state
 
   def normalise_reward(self, reward):
-    return reward
+    return reward#/10.0
 
   # def set_random_seed(self, seed)
   #   self._np_random, seed = seeding.np_random(seed)
@@ -111,8 +111,8 @@ class SimStudent():
     topic_Weights = self.calculate_topicWeight()
     if curr_topic is None or topic_Weights[curr_topic] == 1:
       curr_topic = self.find_minTopicWeight(topic_Weights)
-      self.history = [] # reset history
-    self.history_topic.append(curr_topic)
+      # self.history = [] # reset history
+    
     return curr_topic
 
   def answer_question(self, question, masteries):
@@ -173,6 +173,11 @@ class SimStudent():
         return False
     return True    
 
+  def reset_infoInTopic(self):
+    self.last_score = 0
+    self.history = []
+    self.history_topic = []
+
   def step(self, action):   
 
     action = action.astype(np.int32)
@@ -181,27 +186,28 @@ class SimStudent():
     # for i,m in enumerate(self.true_masteries):
     #   if m<SKILL_LEVELS[i]: check_mastered=False
 
-    reward = 0
+    reward = -1
     log_INFO(f'action_before_filter: {action}')
+
     # reward for predict prev_action
     if len(self.history)>0:
       for i in range(len(self.history)-1 , -1 , -1):
         if self.history[i]==action_mapping: 
-          reward+=-20
+          reward+=0
         else:
           break
 
     self.history.append(action_mapping) 
     if action >= (LP_SEGMENT[self.history_topic[-1]][1]-LP_SEGMENT[self.history_topic[-1]][0]) or action < 0:
-      reward += -20
+      reward += 0
       num_same_act = self.count_consecutive_actions(action_mapping)
-      # reward += (num_same_act-1)*(-1)
+      # reward += (num_same_act-1)*(-5)
 
     else:
       if self.true_masteries[int(action_mapping)] == 1:
-        reward += -20
-      else:
-        reward +=20
+        reward += 0
+      # else:
+      #   reward +=20
       log_INFO(f'action_mapping: {action_mapping}')
       if action_mapping in range(len(LESSONS)):
         self.true_masteries = self.lesson_update_masteries(action_mapping)
@@ -216,10 +222,10 @@ class SimStudent():
         log_INFO(f'after test \| masteries: {Counter(self.masteries)} - true_m {Counter(self.true_masteries)}, reward {reward}')
         score = self.get_test_score(test, self.true_masteries)
         log_INFO(f'test score \| masteries: {Counter(self.masteries)} - true_m {Counter(self.true_masteries)}, reward {reward}')
-        if score==0: reward+=0
-        elif score==10: reward+=20 # max test score
-        else: 
-          reward += (score-self.last_score)*0.5# - 1*penalty_weight
+        # if score==0: reward+=0
+        # elif score==10: reward+=10 # max test score
+        # else: 
+        #   reward += (score-self.last_score)*0.5# - 1*penalty_weight
 
         self.last_score = score
 
@@ -231,9 +237,13 @@ class SimStudent():
 
     # Check learing a topic is done
     done = self.is_complete_topic(self.history_topic[-1])
+    if done: 
+      # reward+=1
+      self.reset_infoInTopic()
 
     # get and append new topic
     curr_topic = self.topic_recommender()
+    self.history_topic.append(curr_topic)
     segment_LPs = self.mask_others_lp_not_in_topic(curr_topic)
 
     # self.masteries = self.forget_update_masteries()
@@ -257,6 +267,7 @@ class SimStudent():
     self.history = []
     self.history_topic = []
     curr_topic = self.topic_recommender()
+    self.history_topic.append(curr_topic)
     segment_LPs = self.mask_others_lp_not_in_topic(curr_topic)
     return self._get_obs(segment_LPs)
 
