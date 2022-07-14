@@ -18,9 +18,9 @@ class SimStudent():
       # An observation of the environment is a list of skill mastery, each value [0,1] represents the student's learning progress of a skill
   def __init__(self, intelligence = 50, luck=50):
     self.observation_space = [0, 1, 35] # min max shape
-    self.action_space = [0, 34, 1] # min max shape
-    self.v_min = -1.0
-    self.v_max = 1.0
+    self.action_space = [0, 1, 35] # min max shape
+    self.v_min = -2.0
+    self.v_max = 2.0
 
     self.true_masteries = np.zeros(len(SKILL_INDS)).astype(np.float32)
 
@@ -179,14 +179,14 @@ class SimStudent():
     self.history_topic = []
 
   def step(self, action):   
-
+    action = np.where(action == np.amax(action))[0]
     action = action.astype(np.int32)
     action_mapping = LP_SEGMENT[self.history_topic[-1]][0] + action
     # check_mastered = True
     # for i,m in enumerate(self.true_masteries):
     #   if m<SKILL_LEVELS[i]: check_mastered=False
 
-    reward = -1
+    reward = 0
     log_INFO(f'action_before_filter: {action}')
 
     # reward for predict prev_action
@@ -199,15 +199,15 @@ class SimStudent():
 
     self.history.append(action_mapping) 
     if action >= (LP_SEGMENT[self.history_topic[-1]][1]-LP_SEGMENT[self.history_topic[-1]][0]) or action < 0:
-      reward += 0
+      reward += -1
       num_same_act = self.count_consecutive_actions(action_mapping)
       # reward += (num_same_act-1)*(-5)
 
     else:
       if self.true_masteries[int(action_mapping)] == 1:
-        reward += 0
-      # else:
-      #   reward +=20
+        reward += -1
+      else:
+        reward += 1
       log_INFO(f'action_mapping: {action_mapping}')
       if action_mapping in range(len(LESSONS)):
         self.true_masteries = self.lesson_update_masteries(action_mapping)
@@ -238,7 +238,7 @@ class SimStudent():
     # Check learing a topic is done
     done = self.is_complete_topic(self.history_topic[-1])
     if done: 
-      # reward+=1
+      reward+=1
       self.reset_infoInTopic()
 
     # get and append new topic
