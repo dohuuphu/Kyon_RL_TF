@@ -31,7 +31,7 @@ class train_params:
     del dummy_env
     
     # Training parameters
-    BATCH_SIZE = 256#256
+    BATCH_SIZE = 2#256
     NUM_STEPS_TRAIN = 10000       # Number of steps to train for
     MAX_EP_LENGTH = 1000           # Maximum number of steps per episode
     REPLAY_MEM_SIZE = 10000      # Soft maximum capacity of replay memory
@@ -43,7 +43,7 @@ class train_params:
     NOISE_SCALE = 0.3               # Scaling to apply to Gaussian noise
     NOISE_DECAY = 0.9999            # Decay noise throughout training by scaling by noise_decay**training_step
     DISCOUNT_RATE = 0.99            # Discount rate (gamma) for future rewards
-    N_STEP_RETURNS = 5              # Number of future steps to collect experiences for N-step returns
+    N_STEP_RETURNS = 2              # Number of future steps to collect experiences for N-step returns
     UPDATE_AGENT_EP = 10            # Agent gets latest parameters from learner every update_agent_ep episodes
     
     # Network parameters

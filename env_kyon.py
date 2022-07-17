@@ -17,8 +17,8 @@ def log_INFO(message):
 class SimStudent():
       # An observation of the environment is a list of skill mastery, each value [0,1] represents the student's learning progress of a skill
   def __init__(self, intelligence = 50, luck=50):
-    self.observation_space = [0, 1, 35] # min max shape
-    self.action_space = [0, 1, 35] # min max shape
+    self.observation_space = [0, 1, len(LP_PER_TOPICS)] # min max shape
+    self.action_space = [0, len(LP_PER_TOPICS)-1, 1] # min max shape
     self.v_min = -2.0
     self.v_max = 2.0
 
@@ -31,7 +31,7 @@ class SimStudent():
 
 
     # Initial test result
-    # test = test_gen(SKILL_INDS, NUM_QUESTIONS_PER_TEST)
+    test = test_gen(SKILL_INDS, NUM_QUESTIONS_PER_TEST)
     self.masteries = self.true_masteries#self.test_update_masteries(test)
     # score = self.get_test_score(test, self.true_masteries)
     self.last_score = 0
@@ -171,7 +171,11 @@ class SimStudent():
     for value in dict_LPvalue[topic_name][LP_VALUE_STR]:
       if value < 1 :
         return False
-    return True    
+    return True  
+
+  def is_complete_topic_api(self, prev_state, action):
+    # prev_state[action]
+    pass
 
   def reset_infoInTopic(self):
     self.last_score = 0
@@ -187,7 +191,7 @@ class SimStudent():
     #   if m<SKILL_LEVELS[i]: check_mastered=False
 
     reward = 0
-    log_INFO(f'action_before_filter: {action}')
+    # log_INFO(f'action_before_filter: {action}')
 
     # reward for predict prev_action
     if len(self.history)>0:
@@ -247,8 +251,50 @@ class SimStudent():
     segment_LPs = self.mask_others_lp_not_in_topic(curr_topic)
 
     # self.masteries = self.forget_update_masteries()
-    log_INFO(f'Done step \| masteries: {Counter(self.masteries)} - true_m {Counter(self.true_masteries)}, reward {reward}')
+    # log_INFO(f'Done step \| masteries: {Counter(self.masteries)} - true_m {Counter(self.true_masteries)}, reward {reward}')
     return self._get_obs(segment_LPs), np.array(reward, dtype=np.float32), done
+
+  def step_api(self, history_action:dict, prev_state, history_score): 
+    reward = 0
+    done = False
+
+    if history_action != 'None':  
+      action = list(history_action.values())[-1]
+      # action = np.where(action == np.amax(action))[0] # using for discrete
+      # action = action.astype(np.int32)
+      history_topic = list(history_action.keys()) # need mapping
+      action_mapping = LP_SEGMENT[history_topic[-1]][0] + action
+
+      # reward for predict prev_action
+      if len(self.history)>0:
+        for i in range(len(self.history)-1 , -1 , -1):
+          if self.history[i]==action_mapping: 
+            reward+=0
+          else:
+            break
+
+
+      if action >= (LP_SEGMENT[history_topic[-1]][1]-LP_SEGMENT[history_topic[-1]][0]) or action < 0:
+        reward += -1
+        num_same_act = self.count_consecutive_actions(action_mapping)
+        # reward += (num_same_act-1)*(-5)
+
+      else:
+        if prev_state[int(action)] == 1:
+          reward += -1
+        else:
+          reward += 1
+
+        num_same_act = self.count_consecutive_actions(action_mapping)
+        # reward += (num_same_act-1)*(-1)
+
+      # Check learing a topic is done
+      # done = self.is_complete_topic_api(prev_state, action)
+      # if done: 
+      #   reward+=1
+        # self.reset_infoInTopic()
+
+    return np.array(reward, dtype=np.float32), done
 
   def reset(self):
     self.true_masteries = np.zeros(len(SKILL_INDS))

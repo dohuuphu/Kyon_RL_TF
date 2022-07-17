@@ -16,6 +16,7 @@ tf.disable_v2_behavior()
 
 import matplotlib.pyplot as plt
 import numpy as np
+import gc
           
 class Learner:
     def __init__(self, sess, PER_memory, run_agent_event, stop_agent_event):
@@ -66,6 +67,10 @@ class Learner:
         self.saver = tf.train.Saver(var_list = saver_vars, max_to_keep=201) 
         
     def build_update_ops(self):     
+        """
+        The function creates two sets of operations, one to initialize the target network with the main
+        network, and one to update the target network with a fraction of the main network
+        """
         network_params = self.actor_net.network_params + self.critic_net.network_params
         target_network_params = self.actor_target_net.network_params + self.critic_target_net.network_params
         
@@ -108,6 +113,7 @@ class Learner:
         while len(self.PER_memory) <= train_params.BATCH_SIZE:
             sys.stdout.write('\rPopulating replay memory up to batch_size samples...')   
             sys.stdout.flush()
+            gc.collect()
         
         # Training
         sys.stdout.write('\n\nTraining...\n')   
@@ -179,6 +185,7 @@ class Learner:
                 sys.stdout.write('\nCheckpoint saved.\n')   
                 sys.stdout.flush() 
         
+        gc.collect()
         # Stop the agents
         self.stop_agent_event.set()     
 

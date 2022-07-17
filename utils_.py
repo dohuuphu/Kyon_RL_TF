@@ -1,9 +1,11 @@
 import math
-
 import numpy as np
-
+import ast
 from variables import *
 
+from collections import deque
+
+from os.path import join
 
 def sigmoid(x):
       return 1 / (1 + math.exp(-x))
@@ -113,7 +115,7 @@ def find_minTopicWeight(topic_weights:dict) -> str:
     Return topic name'''
   return min(topic_weights, key=topic_weights.get)
   
-def topic_recommender(curr_topic, masteries:list):
+def topic_recommender(masteries:list, curr_topic=None):
 
   topic_Weights = calculate_topicWeight(masteries)
   if curr_topic is None or topic_Weights[curr_topic] == 1:
@@ -131,3 +133,45 @@ def mask_others_lp_not_in_topic(masteries:list ,topic:str):
 
 def format_observation(list_ : list):
   return np.array([i*1.0 for i in list_], dtype=np.float64)
+
+
+def format_result( student_ID:int, id:int, topic_name:str):
+  '''format result as dictionary to return backend'''
+  value_result = dict(list(filter(lambda topic: topic['topic'] == topic_name, DATA_PARSED))[id])
+
+  r = {'student_ID':student_ID, 'raw_action': int(id)}
+
+  for name in value_result:
+    r.update({name:value_result[name]})
+
+  return r
+  
+
+def load_deque(id_user:int):
+    exp_buffer = deque()
+    try:
+      with open(join(ROOT_DATABASE, f'{id_user}.txt'),'r') as f:
+          infomation = f.readlines()
+          for line in infomation:
+              line = line.split('\t')
+              state = np.array(ast.literal_eval(line[0]))
+              action = np.array(ast.literal_eval(line[1]))
+              reward = np.array(ast.literal_eval(line[2]))
+              exp_buffer.append((state,action,reward))
+    except:
+      print(f'new user {id_user}')
+
+    return exp_buffer
+            
+def save_deque(id_user, deque):
+  with open(join(ROOT_DATABASE, f'{id_user}.txt'), 'w') as f:
+    for i in range(len(list(deque))):
+        state = list(deque[i])[0]
+        action = list(deque[i])[1]
+        reward = list(deque[i])[2]
+        
+        format_save = str(list(state)) + '\t' + str(action) + '\t' + str(reward) + '\n' 
+        f.write(format_save)
+
+
+

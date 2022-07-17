@@ -12,6 +12,8 @@ import scipy.stats as ss
 from collections import deque
 import cv2
 import imageio
+import threading
+import json
 
 from params import train_params, test_params, play_params
 from utils.network import Actor, Actor_BN
@@ -19,10 +21,13 @@ from utils.env_wrapper import PendulumWrapper, LunarLanderContinuousWrapper, Bip
 
 from env_kyon import SimStudent
 
+
+
 import tensorflow.compat.v1 as tf
-from variables import LP_SEGMENT
+from variables_old import LP_SEGMENT
 tf.disable_v2_behavior() 
 
+from utils_ import topic_recommender, mask_others_lp_not_in_topic, load_deque, save_deque
 
 class Agent:
   
@@ -31,6 +36,12 @@ class Agent:
          
         self.sess = sess        
         self.n_agent = n_agent
+        self.lock = threading.Lock()
+        self.num_steps = 0
+        # Initialise deque buffer to store experiences for N-step returns
+        self.exp_buffer = deque()
+
+        
        
         # Create environment    
         if env == 'Pendulum-v0':
@@ -182,6 +193,185 @@ class Agent:
                 self.sess.run(self.update_op)
         
         # self.env_wrapper.close()
+
+    # def run(self, PER_memory, gaussian_noise, run_agent_event, stop_agent_event):
+    #     # Continuously run agent in environment to collect experiences and add to replay memory
+                
+    #     # Initialise deque buffer to store experiences for N-step returns
+    #     self.exp_buffer = deque()
+        
+    #     # Perform initial copy of params from learner to agent
+    #     self.sess.run(self.update_op)
+        
+    #     # Initialise var for logging episode reward
+    #     if train_params.LOG_DIR is not None:
+    #         self.sess.run(self.init_reward_var)
+        
+    #     # Initially set threading event to allow agent to run until told otherwise
+    #     run_agent_event.set()
+        
+    #     num_eps = 0
+        
+    #     while not stop_agent_event.is_set():
+    #         num_eps += 1
+    #         # Reset environment and experience buffer
+    #         state = self.env_wrapper.reset()
+    #         state = self.env_wrapper.normalise_state(state)
+    #         self.exp_buffer.clear()
+            
+    #         num_steps = 0
+    #         episode_reward = 0
+    #         ep_done = False
+    #         topics_done = 0
+            
+    #         while not ep_done:
+    #             num_steps += 1
+    #             ## Take action and store experience
+    #             if train_params.RENDER:
+    #                 self.env_wrapper.render()
+    #             action = self.sess.run(self.actor_net.output , {self.state_ph:np.expand_dims(state, 0)})[0]     # Add batch dimension to single state input, and remove batch dimension from single action output
+    #             action_prev = np.where(action == np.amax(action))[0]
+    #             action += (gaussian_noise() * train_params.NOISE_DECAY**num_eps)
+    #             action_ = np.where(action == np.amax(action))[0]
+    #             next_state, reward, terminal = self.env_wrapper.step(action)
+                
+    #             episode_reward += reward 
+                               
+    #             next_state = self.env_wrapper.normalise_state(next_state)
+    #             reward = self.env_wrapper.normalise_reward(reward)
+                
+    #             self.exp_buffer.append((state, action, reward))
+                
+    #             # We need at least N steps in the experience buffer before we can compute Bellman rewards and add an N-step experience to replay memory
+    #             if len(self.exp_buffer) >= train_params.N_STEP_RETURNS:
+    #                 state_0, action_0, reward_0 = self.exp_buffer.popleft()
+    #                 discounted_reward = reward_0
+    #                 gamma = train_params.DISCOUNT_RATE
+    #                 for (_, _, r_i) in self.exp_buffer:
+    #                     discounted_reward += r_i * gamma
+    #                     gamma *= train_params.DISCOUNT_RATE
+                    
+    #                 # If learner is requesting a pause (to remove samples from PER), wait before adding more samples
+    #                 run_agent_event.wait()   
+    #                 PER_memory.add(state_0, action_0, discounted_reward, next_state, terminal, gamma)
+                
+    #             state = next_state
+                
+    #             if terminal or num_steps == train_params.MAX_EP_LENGTH:
+    #                 # Count number Topic done
+    #                 topics_done+=1
+    #                 # Log total episode reward
+    #                 if train_params.LOG_DIR is not None:
+    #                     summary_str = self.sess.run(self.summary_op, {self.ep_reward_var: episode_reward})
+    #                     self.summary_writer.add_summary(summary_str, num_eps)
+    #                 # Compute Bellman rewards and add experiences to replay memory for the last N-1 experiences still remaining in the experience buffer
+    #                 while len(self.exp_buffer) != 0:
+    #                     state_0, action_0, reward_0 = self.exp_buffer.popleft()
+    #                     discounted_reward = reward_0
+    #                     gamma = train_params.DISCOUNT_RATE
+    #                     for (_, _, r_i) in self.exp_buffer:
+    #                         discounted_reward += r_i * gamma
+    #                         gamma *= train_params.DISCOUNT_RATE
+                        
+    #                     # If learner is requesting a pause (to remove samples from PER), wait before adding more samples
+    #                     run_agent_event.wait()     
+    #                     PER_memory.add(state_0, action_0, discounted_reward, next_state, terminal, gamma)
+                    
+    #                 # Start next episode if all topic was passed
+    #                 ep_done = self.is_TopicsDone(state)
+                
+    #         # Update agent networks with learner params every 'update_agent_ep' episodes
+    #         if num_eps % train_params.UPDATE_AGENT_EP == 0:
+    #             self.sess.run(self.update_op)
+    
+    def inference(self, student_ID, subject, PER_memory, run_agent_event, history_action, masteries, history_score):
+        
+        '''history_action : dict{topic1:action1, topic_1:action2, topic2:action1,..
+           masteries: [masteries1, masteries2,..]'''
+
+        # while not stop_agent_event.is_set():
+        self.lock.acquire()
+        num_steps = len(history_action)
+        self.lock.release()
+
+        episode_reward = 0
+
+        exp_buffer = load_deque(student_ID)
+
+        # Preprocess input
+
+        
+        try:
+            history_action = json.loads(history_action)
+            curr_topic = list(history_action)[-1] # depend on history action
+            old_action = np.array([history_action[curr_topic]], dtype=np.float32) # depend on history action
+            prev_state = mask_others_lp_not_in_topic(masteries[-2], curr_topic)
+        except:
+            curr_topic = None
+            old_action = None
+            prev_state = None
+
+        # if len(list(history_action)) >= 1 and history_action!= 'None':
+        #     prev_topic = list(history_action)[-2]
+        #     prev_state = mask_others_lp_not_in_topic(masteries[-2], prev_topic)
+        # else:
+        #     prev_state = None
+
+
+        curr_topic = topic_recommender(masteries[-1], curr_topic)
+        state = mask_others_lp_not_in_topic(masteries[-1], curr_topic)
+        
+        ## Take action and store experience
+        action = self.sess.run(self.actor_net.output, {self.state_ph:np.expand_dims(state, 0)})[0]     # Add batch dimension to single state input, and remove batch dimension from single action output
+        reward, terminal = self.env_wrapper.step_api( history_action, prev_state, history_score)
+        
+        episode_reward += reward 
+                        
+        next_state = self.env_wrapper.normalise_state(state)
+        reward = self.env_wrapper.normalise_reward(reward)
+        
+        if prev_state is not None:
+            exp_buffer.append((prev_state, old_action, reward))
+            
+        
+        # We need at least N steps in the experience buffer before we can compute Bellman rewards and add an N-step experience to replay memory
+        if len(exp_buffer) >= train_params.N_STEP_RETURNS:
+            state_0, action_0, reward_0 = exp_buffer.popleft()
+            discounted_reward = reward_0
+            gamma = train_params.DISCOUNT_RATE
+            for (_, _, r_i) in exp_buffer:
+                discounted_reward += r_i * gamma
+                gamma *= train_params.DISCOUNT_RATE
+            
+            # If learner is requesting a pause (to remove samples from PER), wait before adding more samples
+            run_agent_event.wait()   
+            PER_memory.add(state_0, action_0, discounted_reward, next_state, terminal, gamma)
+        
+        if prev_state is not None:
+            save_deque(student_ID, exp_buffer)
+
+        # Update agent networks with learner params every 'update_agent_ep' episodes
+
+        if num_steps % train_params.UPDATE_AGENT_EP == 0:
+            self.sess.run(self.update_op)
+        
+        return student_ID, self.mapping_action(action, state), curr_topic
+
+    def mapping_action(self, action, state ):
+        result = action
+        if state[int(action)] == 1.0:
+            list_zeroIndex = np.where(state == 0.0)[0]
+            temp = 1000
+            for i in list_zeroIndex:
+                delta = abs(int(action)- i)
+                if delta < temp :
+                    temp = delta
+                    result = i
+
+        return result
+
+    def get_expBuffer(self, student_ID)->deque():
+        return None
 
     def is_TopicsDone(self, state):
         '''if all the value of state is 1 => all learning point was , vice versa'''

@@ -1,18 +1,6 @@
-
-
 import requests
 import json
 import pandas as pd
-
-import logging
-
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-format = logging.Formatter('%(asctime)s - %(message)s')
-
-handler = logging.FileHandler('logging_3_50.log')
-handler.setFormatter(format)
-logger.addHandler(handler)
 
 class GetReturnForBackend():
     def __init__(self) -> None:
@@ -31,9 +19,8 @@ class GetReturnForBackend():
         map_lp_topics = dict()
         total_learning_points = 0
 
-        for index, topic in enumerate(topics):
-            if index < 3:
-                map_lp_topics[topic] = len(df.loc[df['topic'] == topic].values)
+        for index,topic in enumerate(topics):
+            map_lp_topics[topic] = len(df.loc[df['topic'] == topic].values)
 
         for key in map_lp_topics:
             start = total_learning_points
@@ -54,27 +41,15 @@ class GetReturnForBackend():
                 lessons_r.append({'id':lesson, 'skills':[skill_names_r.index(skill_name)]})
                 list_row.append(row)
 
-        return map_lp_topics, lessons_r, skill_names_r, [1.0]*len(lessons_r), list_row
+        return map_lp_topics, lessons_r, skill_names_r , list_row
         
     def return_result (self,topic_name:str,id:int):
         lp_segment, lessons, skill_names, list_row = self.normalize_input()
         return list(filter(lambda topic: topic['topic'] == topic_name, list_row))[id]
         
+if __name__ == "__main__":
+    backend = GetReturnForBackend()
+    lesson = backend.return_result('Unit 1',0)
+    print(lesson)
 
-data_backend = GetReturnForBackend()
 
-LP_SEGMENT, LESSONS, SKILL_NAMES, LP_DIFFICULT_VALUE, DATA_PARSED =  data_backend.normalize_input()
-
-LP_PER_TOPICS = [1]*70
-SKILL_SPACES = [i+1 for i in LP_PER_TOPICS]
-NEW_SKILL_SPACES = [2.0]*35
-
-NUM_QUESTIONS_PER_TEST = 100
-
-SKILL_LEVELS = [1]*len(SKILL_NAMES)
-SKILL_INDS = range(len(SKILL_NAMES))
-LP_VALUE_STR = 'LP_value'
-LP_DIFFICULT_STR = 'LP_difficut'
-
-#database
-ROOT_DATABASE = './database'
