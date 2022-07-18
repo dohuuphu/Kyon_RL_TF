@@ -194,4 +194,106 @@ class Learner:
         for loss in self.loss:
             list_loss.append(sum(loss)/len(loss))
         plt.plot(np.array(list_loss))
-        plt.savefig('loss.png')                       
+        plt.savefig('loss.png')  
+
+    def run_api(self):
+        # Sample batches of experiences from replay memory and train learner networks 
+            
+        # Initialise beta to start value
+        priority_beta = train_params.PRIORITY_BETA_START
+        beta_increment = (train_params.PRIORITY_BETA_END - train_params.PRIORITY_BETA_START) / train_params.NUM_STEPS_TRAIN
+        
+        # Can only train when we have at least batch_size num of samples in replay memory
+        while len(self.PER_memory) <= train_params.BATCH_SIZE:
+            sys.stdout.write('\rPopulating replay memory up to batch_size samples...')   
+            sys.stdout.flush()
+            gc.collect()
+        
+        # Training
+        sys.stdout.write('\n\nTraining...\n')   
+        sys.stdout.flush()
+    
+        # for train_step in range(self.start_step+1, train_params.NUM_STEPS_TRAIN+1):  
+        temp_memory = 0
+        train_step = 0
+        while True:
+            if len(self.PER_memory) - temp_memory == 5:
+                temp_memory = len(self.PER_memory)
+                train_step+=1
+            # Get minibatch
+                minibatch = self.PER_memory.sample(train_params.BATCH_SIZE, priority_beta) 
+                
+                states_batch = minibatch[0]
+                actions_batch = minibatch[1]
+                rewards_batch = minibatch[2]
+                next_states_batch = minibatch[3]
+                terminals_batch = minibatch[4]
+                gammas_batch = minibatch[5]
+                weights_batch = minibatch[6]
+                idx_batch = minibatch[7]            
+        
+                # Critic training step    
+                # Predict actions for next states by passing next states through policy target network
+                future_action = self.sess.run(self.actor_target_net.output, {self.state_ph:next_states_batch})  
+                # Predict future Z distribution by passing next states and actions through value target network, also get target network's Z-atom values
+                target_Z_dist, target_Z_atoms = self.sess.run([self.critic_target_net.output_probs, self.critic_target_net.z_atoms], {self.state_ph:next_states_batch, self.action_ph:future_action})
+                # Create batch of target network's Z-atoms
+                target_Z_atoms = np.repeat(np.expand_dims(target_Z_atoms, axis=0), train_params.BATCH_SIZE, axis=0)
+                # Value of terminal states is 0 by definition
+                target_Z_atoms[terminals_batch, :] = 0.0
+                # Apply Bellman update to each atom
+                target_Z_atoms = np.expand_dims(rewards_batch, axis=1) + (target_Z_atoms*np.expand_dims(gammas_batch, axis=1))
+                # Train critic
+                TD_error, _ = self.sess.run([self.critic_net.loss, self.critic_train_step], {self.state_ph:states_batch, self.action_ph:actions_batch, self.target_Z_ph:target_Z_dist, self.target_atoms_ph:target_Z_atoms, self.weights_ph:weights_batch})   
+                # Use critic TD errors to update sample priorities
+                self.PER_memory.update_priorities(idx_batch, (np.abs(TD_error)+train_params.PRIORITY_EPSILON))
+
+                # Draw TD_error
+                # self.loss.append(TD_error)
+                
+                            
+                # Actor training step
+                # Get policy network's action outputs for selected states
+                actor_actions = self.sess.run(self.actor_net.output, {self.state_ph:states_batch})
+                # Compute gradients of critic's value output distribution wrt actions
+                action_grads = self.sess.run(self.critic_net.action_grads, {self.state_ph:states_batch, self.action_ph:actor_actions})
+                # Train actor
+                self.sess.run(self.actor_train_step, {self.state_ph:states_batch, self.action_grads_ph:action_grads[0]})
+                
+                # Update target networks
+                self.sess.run(self.update_op)
+                
+                # Increment beta value at end of every step   
+                priority_beta += beta_increment
+                                
+                # Periodically check capacity of replay mem and remove samples (by FIFO process) above this capacity
+                if train_step % train_params.REPLAY_MEM_REMOVE_STEP == 0:
+                    if len(self.PER_memory) > train_params.REPLAY_MEM_SIZE:
+                        # Prevent agent from adding new experiences to replay memory while learner removes samples
+                        self.run_agent_event.clear()
+                        samples_to_remove = len(self.PER_memory) - train_params.REPLAY_MEM_SIZE
+                        self.PER_memory.remove(samples_to_remove)
+                        # Allow agent to continue adding experiences to replay memory
+                        self.run_agent_event.set()
+                        
+                sys.stdout.write('\rStep {:d}/{:d}'.format(train_step, train_params.NUM_STEPS_TRAIN))
+                sys.stdout.flush()  
+                
+                # Save ckpt periodically
+                if train_step % train_params.SAVE_CKPT_STEP == 0:
+                    self.saver.save(self.sess, self.checkpoint_path, global_step=train_step)
+                    sys.stdout.write('\nCheckpoint saved.\n')   
+                    sys.stdout.flush() 
+            
+                gc.collect()
+            # Stop the agents
+            # self.stop_agent_event.set()     
+
+            # Save plot
+            # list_loss=[]
+            # for loss in self.loss:
+            #     list_loss.append(sum(loss)/len(loss))
+            # plt.plot(np.array(list_loss))
+            # plt.savefig('loss.png')  
+
+

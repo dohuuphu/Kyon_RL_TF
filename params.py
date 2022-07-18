@@ -32,10 +32,10 @@ class train_params:
     
     # Training parameters
     BATCH_SIZE = 2#256
-    NUM_STEPS_TRAIN = 10000       # Number of steps to train for
+    NUM_STEPS_TRAIN = 1       # Number of steps to train for
     MAX_EP_LENGTH = 1000           # Maximum number of steps per episode
     REPLAY_MEM_SIZE = 10000      # Soft maximum capacity of replay memory
-    REPLAY_MEM_REMOVE_STEP = 100    # Check replay memory every REPLAY_MEM_REMOVE_STEP training steps and remove samples over REPLAY_MEM_SIZE capacity
+    REPLAY_MEM_REMOVE_STEP = 5    # Check replay memory every REPLAY_MEM_REMOVE_STEP training steps and remove samples over REPLAY_MEM_SIZE capacity
     PRIORITY_ALPHA = 0.6            # Controls the randomness vs prioritisation of the prioritised sampling (0.0 = Uniform sampling, 1.0 = Greedy prioritisation)
     PRIORITY_BETA_START = 0.4       # Starting value of beta - controls to what degree IS weights influence the gradient updates to correct for the bias introduced by priority sampling (0 - no correction, 1 - full correction)
     PRIORITY_BETA_END = 1.0         # Beta will be linearly annealed from its start value to this value throughout training

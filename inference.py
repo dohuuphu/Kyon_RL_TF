@@ -66,7 +66,7 @@ class Recommend_core():
         # Get learner policy (actor) network params - agent needs these to copy latest policy params periodically
         learner_policy_params = learner.actor_net.network_params + learner.actor_net.bn_params
         
-        threads.append(threading.Thread(target=learner.run))
+        threads.append(threading.Thread(target=learner.run_api))
         
 
         # Initialise agent
