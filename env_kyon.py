@@ -221,10 +221,10 @@ class SimStudent():
       # if len(self.history)==MAX_NUM_ACTIONS or len(self.history)%NUM_ACTIONS_PER_TEST==0 or check_mastered==True:
 
         # Take a test after this action
-        test = test_gen_after(SKILL_INDS,NUM_QUESTIONS_PER_TEST,action_mapping)
+        # test = test_gen_after(SKILL_INDS,NUM_QUESTIONS_PER_TEST,action_mapping)
         # self.masteries = self.test_update_masteries(test)
         log_INFO(f'after test \| masteries: {Counter(self.masteries)} - true_m {Counter(self.true_masteries)}, reward {reward}')
-        score = self.get_test_score(test, self.true_masteries)
+        score = 0#self.get_test_score(test, self.true_masteries)
         log_INFO(f'test score \| masteries: {Counter(self.masteries)} - true_m {Counter(self.true_masteries)}, reward {reward}')
         # if score==0: reward+=0
         # elif score==10: reward+=10 # max test score

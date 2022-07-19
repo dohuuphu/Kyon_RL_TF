@@ -185,8 +185,10 @@ class Agent:
                         run_agent_event.wait()     
                         PER_memory.add(state_0, action_0, discounted_reward, next_state, terminal, gamma)
                     
+                    num_steps = 0
+                    
                     # Start next episode if all topic was passed
-                    ep_done = self.is_TopicsDone(state)
+                    ep_done = self.is_TopicsDone(state) or stop_agent_event.is_set()
                 
             # Update agent networks with learner params every 'update_agent_ep' episodes
             if num_eps % train_params.UPDATE_AGENT_EP == 0:
