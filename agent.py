@@ -284,15 +284,15 @@ class Agent:
     #         if num_eps % train_params.UPDATE_AGENT_EP == 0:
     #             self.sess.run(self.update_op)
     
-    def inference(self, student_ID, subject, PER_memory, run_agent_event, history_action, masteries, history_score):
+    def inference(self, student_ID, subject, history_topic, PER_memory, run_agent_event, history_action, masteries, history_score):
         
         '''history_action : dict{topic1:action1, topic_1:action2, topic2:action1,..
            masteries: [masteries1, masteries2,..]'''
 
         # while not stop_agent_event.is_set():
-        self.lock.acquire()
+        # self.lock.acquire()
         num_steps = len(history_action)
-        self.lock.release()
+        # self.lock.release()
 
         episode_reward = 0
 
@@ -302,20 +302,23 @@ class Agent:
 
         
         try:
-            history_action = json.loads(history_action)
-            curr_topic = list(history_action)[-1] # depend on history action
-            old_action = np.array([history_action[curr_topic]], dtype=np.float32) # depend on history action
-            prev_state = mask_others_lp_not_in_topic(masteries[-2], curr_topic)
+            curr_topic = history_topic[-1]
+            old_action = history_action[-1]
+            # history_action = json.loads(history_action)
+            # history_action
+            # curr_topic_ = list(history_action)[-1] # depend on history action
+            # old_action = np.array([history_action[curr_topic]], dtype=np.float32) # depend on history action
+            # prev_state = mask_others_lp_not_in_topic(masteries[-2], curr_topic)
         except:
             curr_topic = None
             old_action = None
-            prev_state = None
+            # prev_state = None
 
-        # if len(list(history_action)) >= 1 and history_action!= 'None':
-        #     prev_topic = list(history_action)[-2]
-        #     prev_state = mask_others_lp_not_in_topic(masteries[-2], prev_topic)
-        # else:
-        #     prev_state = None
+        if len(masteries) > 1:
+            # prev_topic = list(history_action)[-2]
+            prev_state = mask_others_lp_not_in_topic(masteries[-2], curr_topic)
+        else:
+            prev_state = None
 
 
         curr_topic = topic_recommender(masteries[-1], curr_topic)
@@ -323,7 +326,7 @@ class Agent:
         
         ## Take action and store experience
         action = self.sess.run(self.actor_net.output, {self.state_ph:np.expand_dims(state, 0)})[0]     # Add batch dimension to single state input, and remove batch dimension from single action output
-        reward, terminal = self.env_wrapper.step_api( history_action, prev_state, history_score)
+        reward, terminal = self.env_wrapper.step_api(curr_topic, history_action, prev_state, history_score)
         
         episode_reward += reward 
                         
@@ -331,7 +334,7 @@ class Agent:
         reward = self.env_wrapper.normalise_reward(reward)
         
         if prev_state is not None:
-            exp_buffer.append((prev_state, old_action, reward))
+            exp_buffer.append((prev_state, np.array([old_action], dtype=np.float32), reward))
             
         
         # We need at least N steps in the experience buffer before we can compute Bellman rewards and add an N-step experience to replay memory

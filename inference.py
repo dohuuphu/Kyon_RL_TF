@@ -99,8 +99,8 @@ class Recommend_core():
         # for t in threads:
         #     t.join()
     
-    def get_learningPoint(self, student_ID, subject, history_action, masteries, history_score):
-        return self.agent.inference(student_ID, subject, self.PER_memory, self.run_agent_event, history_action, masteries, history_score)
+    def get_learningPoint(self, student_ID, subject, history_topic, history_action, masteries, history_score):
+        return self.agent.inference(student_ID, subject, history_topic, self.PER_memory, self.run_agent_event, history_action, masteries, history_score)
 
     # def  get_learningPoint()
 # if  __name__ == '__main__':

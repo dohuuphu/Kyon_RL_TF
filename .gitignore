@@ -3,3 +3,4 @@ video/*
 logs/*
 __pycache__/
 *.log
+database/*

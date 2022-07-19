@@ -205,8 +205,8 @@ class Learner:
         
         # Can only train when we have at least batch_size num of samples in replay memory
         while len(self.PER_memory) <= train_params.BATCH_SIZE:
-            sys.stdout.write('\rPopulating replay memory up to batch_size samples...')   
-            sys.stdout.flush()
+            # sys.stdout.write('\rPopulating replay memory up to batch_size samples...')   
+            # sys.stdout.flush()
             gc.collect()
         
         # Training
