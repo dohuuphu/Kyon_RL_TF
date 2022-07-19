@@ -32,10 +32,10 @@ class train_params:
     
     # Training parameters
     BATCH_SIZE = 2#256
-    NUM_STEPS_TRAIN = 1       # Number of steps to train for
+    NUM_STEPS_TRAIN = 1000      # Number of steps to train for
     MAX_EP_LENGTH = 1000           # Maximum number of steps per episode
     REPLAY_MEM_SIZE = 10000      # Soft maximum capacity of replay memory
-    REPLAY_MEM_REMOVE_STEP = 5    # Check replay memory every REPLAY_MEM_REMOVE_STEP training steps and remove samples over REPLAY_MEM_SIZE capacity
+    REPLAY_MEM_REMOVE_STEP = 10    # Check replay memory every REPLAY_MEM_REMOVE_STEP training steps and remove samples over REPLAY_MEM_SIZE capacity
     PRIORITY_ALPHA = 0.6            # Controls the randomness vs prioritisation of the prioritised sampling (0.0 = Uniform sampling, 1.0 = Greedy prioritisation)
     PRIORITY_BETA_START = 0.4       # Starting value of beta - controls to what degree IS weights influence the gradient updates to correct for the bias introduced by priority sampling (0 - no correction, 1 - full correction)
     PRIORITY_BETA_END = 1.0         # Beta will be linearly annealed from its start value to this value throughout training
@@ -43,7 +43,7 @@ class train_params:
     NOISE_SCALE = 0.3               # Scaling to apply to Gaussian noise
     NOISE_DECAY = 0.9999            # Decay noise throughout training by scaling by noise_decay**training_step
     DISCOUNT_RATE = 0.99            # Discount rate (gamma) for future rewards
-    N_STEP_RETURNS = 2              # Number of future steps to collect experiences for N-step returns
+    N_STEP_RETURNS = 5              # Number of future steps to collect experiences for N-step returns
     UPDATE_AGENT_EP = 10            # Agent gets latest parameters from learner every update_agent_ep episodes
     
     # Network parameters
