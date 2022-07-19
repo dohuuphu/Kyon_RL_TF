@@ -10,7 +10,8 @@ from api.response import APIResponse
 class Item(BaseModel):
     student_id: int
     subject: str
-    history_action: str
+    history_topic: list
+    history_action: list
     masteries: List[List[int]]
     history_score: list
 
@@ -21,7 +22,7 @@ def KyonRL_setup(app, RL_model):
     def execute_api(item: Item):
         # item.masteries = [i*1.0 for i in item.masteries]
         try:
-            student_ID, action, topic_name = RL_model.get_learningPoint(item.student_id, item.subject, item.history_action, item.masteries, item.history_score)
+            student_ID, action, topic_name = RL_model.get_learningPoint(item.student_id, item.subject, item.history_topic, item.history_action, item.masteries, item.history_score)
             result = format_result(student_ID, action, topic_name)
 
         except OSError as e:

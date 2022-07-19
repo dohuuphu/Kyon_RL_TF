@@ -254,16 +254,16 @@ class SimStudent():
     # log_INFO(f'Done step \| masteries: {Counter(self.masteries)} - true_m {Counter(self.true_masteries)}, reward {reward}')
     return self._get_obs(segment_LPs), np.array(reward, dtype=np.float32), done
 
-  def step_api(self, history_action:dict, prev_state, history_score): 
+  def step_api(self, curr_topic, history_action:list, prev_state, history_score): 
     reward = 0
     done = False
 
-    if history_action != 'None':  
-      action = list(history_action.values())[-1]
+    if len(history_action) != 0 and prev_state is not None:  
+      action = history_action[-1]
       # action = np.where(action == np.amax(action))[0] # using for discrete
       # action = action.astype(np.int32)
-      history_topic = list(history_action.keys()) # need mapping
-      action_mapping = LP_SEGMENT[history_topic[-1]][0] + action
+      # history_topic = list(history_action.keys()) # need mapping
+      action_mapping = LP_SEGMENT[curr_topic][0] + action
 
       # reward for predict prev_action
       if len(self.history)>0:
@@ -274,7 +274,7 @@ class SimStudent():
             break
 
 
-      if action >= (LP_SEGMENT[history_topic[-1]][1]-LP_SEGMENT[history_topic[-1]][0]) or action < 0:
+      if action >= (LP_SEGMENT[curr_topic][1]-LP_SEGMENT[curr_topic][0]) or action < 0:
         reward += -1
         num_same_act = self.count_consecutive_actions(action_mapping)
         # reward += (num_same_act-1)*(-5)
