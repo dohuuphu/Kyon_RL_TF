@@ -1,11 +1,14 @@
 import math
 import numpy as np
 import ast
+import os
+import glob
+import shutil
 from variables import *
 
 from collections import deque
 
-from os.path import join
+from os.path import dirname, join, basename, exists
 
 def sigmoid(x):
       return 1 / (1 + math.exp(-x))
@@ -137,20 +140,14 @@ def format_observation(list_ : list):
 
 def format_result( student_ID:int, id:int, topic_name:str):
   '''format result as dictionary to return backend'''
-  value_result = dict(list(filter(lambda topic: topic['topic'] == topic_name, DATA_PARSED))[id])
 
-  r = {'student_ID':student_ID, 'raw_action': int(id)}
-
-  for name in value_result:
-    r.update({name:value_result[name]})
-
-  return r
+  return DATA_PARSED[topic_name][id]
   
 
 def load_deque(id_user:int):
     exp_buffer = deque()
     try:
-      with open(join(ROOT_DATABASE, f'{id_user}.txt'),'r') as f:
+      with open(join(ROOT_DATABASE, EXP_BUFFER, f'{id_user}.txt'),'r') as f:
           infomation = f.readlines()
           for line in infomation:
               line = line.split('\t')
@@ -164,7 +161,7 @@ def load_deque(id_user:int):
     return exp_buffer
             
 def save_deque(id_user, deque):
-  with open(join(ROOT_DATABASE, f'{id_user}.txt'), 'w') as f:
+  with open(join(ROOT_DATABASE, EXP_BUFFER, f'{id_user}.txt'), 'w') as f:
     for i in range(len(list(deque))):
         state = list(deque[i])[0]
         action = list(deque[i])[1]
@@ -173,5 +170,37 @@ def save_deque(id_user, deque):
         format_save = str(list(state)) + '\t' + str(action) + '\t' + str(reward) + '\n' 
         f.write(format_save)
 
+def save_masteries(id_user, masteries:list):
+  folder_path = create_folder(id_user)
+  name_txt = f'{len(get_totalFile_Masteries(folder_path))}.txt'
+  with open(join(folder_path, name_txt), 'w') as f:
+        f.write(str(masteries))
 
+def read_masteries(id_user, idx= -1):
+  list_name = get_totalFile_Masteries(id_user)
+  name_txt = f'{list_name[idx]}.txt'
+  folder_path = join(ROOT_DATABASE, MASTERIES_STORAGE, id_user)
+
+  info = open(join(folder_path, name_txt), 'r').readline()
+  masteries = list(info.replace('[','').replace(']','').split(","))
+
+  return [float(i.strip()) for i in masteries]
+
+def create_folder( id_user, remain = True):
+        ''' create folder with path, remove old folder if it exist'''
+        folder_path = join(ROOT_DATABASE, MASTERIES_STORAGE, str(id_user))
+        if exists(folder_path):
+            try:
+                if remain: return folder_path
+                shutil.rmtree(folder_path)
+            except OSError as e:
+                pass
+
+        os.makedirs(folder_path)
+        
+        return folder_path
+
+def get_totalFile_Masteries(id_user, format = '.txt'):
+  folder_path = join(ROOT_DATABASE, MASTERIES_STORAGE, str(id_user))
+  return glob.glob(f'{folder_path}/*{format}')
 

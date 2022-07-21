@@ -11,7 +11,7 @@ import numpy as np
 import scipy.stats as ss
 from collections import deque
 import cv2
-import imageio
+# import imageio
 import threading
 import json
 
@@ -27,7 +27,7 @@ import tensorflow.compat.v1 as tf
 from variables_old import LP_SEGMENT
 tf.disable_v2_behavior() 
 
-from utils_ import topic_recommender, mask_others_lp_not_in_topic, load_deque, save_deque
+from utils_ import topic_recommender, mask_others_lp_not_in_topic, load_deque, save_deque, read_masteries, save_masteries
 
 class Agent:
   
@@ -185,10 +185,8 @@ class Agent:
                         run_agent_event.wait()     
                         PER_memory.add(state_0, action_0, discounted_reward, next_state, terminal, gamma)
                     
-                    num_steps = 0
-                    
                     # Start next episode if all topic was passed
-                    ep_done = self.is_TopicsDone(state) or stop_agent_event.is_set()
+                    ep_done = self.is_TopicsDone(state)
                 
             # Update agent networks with learner params every 'update_agent_ep' episodes
             if num_eps % train_params.UPDATE_AGENT_EP == 0:
@@ -286,7 +284,7 @@ class Agent:
     #         if num_eps % train_params.UPDATE_AGENT_EP == 0:
     #             self.sess.run(self.update_op)
     
-    def inference(self, student_ID, subject, history_topic, PER_memory, run_agent_event, history_action, masteries, history_score):
+    def inference(self, student_ID, subject, history_topic, PER_memory, run_agent_event, history_action, curr_masteries, history_score):
         
         '''history_action : dict{topic1:action1, topic_1:action2, topic2:action1,..
            masteries: [masteries1, masteries2,..]'''
@@ -316,15 +314,17 @@ class Agent:
             old_action = None
             # prev_state = None
 
-        if len(masteries) > 1:
+        try:
+            prev_masteries = read_masteries(student_ID)
             # prev_topic = list(history_action)[-2]
-            prev_state = mask_others_lp_not_in_topic(masteries[-2], curr_topic)
-        else:
+            prev_state = mask_others_lp_not_in_topic(prev_masteries, curr_topic)
+        except:
             prev_state = None
 
+        save_masteries(student_ID, curr_masteries)
 
-        curr_topic = topic_recommender(masteries[-1], curr_topic)
-        state = mask_others_lp_not_in_topic(masteries[-1], curr_topic)
+        curr_topic = topic_recommender(curr_masteries, curr_topic)
+        state = mask_others_lp_not_in_topic(curr_masteries, curr_topic)
         
         ## Take action and store experience
         action = self.sess.run(self.actor_net.output, {self.state_ph:np.expand_dims(state, 0)})[0]     # Add batch dimension to single state input, and remove batch dimension from single action output
