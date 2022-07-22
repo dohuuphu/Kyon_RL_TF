@@ -12,7 +12,7 @@ class Item(BaseModel):
     subject: str
     history_topic: list
     history_action: list
-    masteries: List[List[int]]
+    masteries: list
     history_score: list
 
 

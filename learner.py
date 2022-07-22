@@ -210,8 +210,8 @@ class Learner:
             gc.collect()
         
         # Training
-        sys.stdout.write('\n\nTraining...\n')   
-        sys.stdout.flush()
+        # sys.stdout.write('\n\nTraining...\n')   
+        # sys.stdout.flush()
     
         # for train_step in range(self.start_step+1, train_params.NUM_STEPS_TRAIN+1):  
         temp_memory = 0
@@ -220,6 +220,9 @@ class Learner:
             if len(self.PER_memory) - temp_memory == 5:
                 temp_memory = len(self.PER_memory)
                 train_step+=1
+
+                sys.stdout.write('\n\nTraining...{:d}\n'.format(train_step))   
+                sys.stdout.flush()
             # Get minibatch
                 minibatch = self.PER_memory.sample(train_params.BATCH_SIZE, priority_beta) 
                 

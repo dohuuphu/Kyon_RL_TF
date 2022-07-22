@@ -7,6 +7,7 @@ import threading
 import random
 import tensorflow as tf
 import numpy as np
+import sys
 
 from params import train_params
 from utils.prioritised_experience_replay import PrioritizedReplayBuffer   
@@ -26,7 +27,7 @@ from api.route import KyonRL_setup
 
 from collections import deque
 
-
+from utils_ import init_database
 
 class Recommend_core():
     def __init__(self):
@@ -82,12 +83,22 @@ class Recommend_core():
         # Perform initial copy of params from learner to agent
         sess.run(self.agent.update_op)
 
+        # Load checkpoint
+        try:
+            self.agent.load_checkpoint()
+        except:
+            sys.stdout.write('Checkpoint was not exist!!!\n\n')
+            sys.stdout.flush() 
+
         # Initialise var for logging episode reward
         if train_params.LOG_DIR is not None:
             sess.run(self.agent.init_reward_var)
 
         # Initially set threading event to allow agent to run until told otherwise
         self.run_agent_event.set()
+
+        #remove database
+        init_database(train_params.REMAIN_DATABASE)
 
 
 

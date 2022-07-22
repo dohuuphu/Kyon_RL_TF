@@ -6,7 +6,8 @@ import glob
 import shutil
 from variables import *
 
-from collections import deque
+from collections import deque, OrderedDict
+
 
 from os.path import dirname, join, basename, exists
 
@@ -141,7 +142,7 @@ def format_observation(list_ : list):
 def format_result( student_ID:int, id:int, topic_name:str):
   '''format result as dictionary to return backend'''
 
-  return DATA_PARSED[topic_name][id]
+  return DATA_PARSED[topic_name][int(id[0])]
   
 
 def load_deque(id_user:int):
@@ -172,35 +173,68 @@ def save_deque(id_user, deque):
 
 def save_masteries(id_user, masteries:list):
   folder_path = create_folder(id_user)
-  name_txt = f'{len(get_totalFile_Masteries(folder_path))}.txt'
+  if len(get_totalFile_Masteries(id_user)) > 10:
+    remove_item_inFolder(folder_path)
+  name_txt = f'{len(get_totalFile_Masteries(id_user))}.txt'
   with open(join(folder_path, name_txt), 'w') as f:
         f.write(str(masteries))
 
 def read_masteries(id_user, idx= -1):
-  list_name = get_totalFile_Masteries(id_user)
-  name_txt = f'{list_name[idx]}.txt'
-  folder_path = join(ROOT_DATABASE, MASTERIES_STORAGE, id_user)
+  dict_masteries = get_totalFile_Masteries(id_user)
+  name_masteries = list(dict_masteries)[idx]
 
-  info = open(join(folder_path, name_txt), 'r').readline()
+  info = open(dict_masteries[name_masteries], 'r').readline()
   masteries = list(info.replace('[','').replace(']','').split(","))
 
   return [float(i.strip()) for i in masteries]
 
+def remove_item_inFolder(folder):
+    for i in glob.glob(f'{folder}/*'):
+        os.remove(i)
+
+
 def create_folder( id_user, remain = True):
-        ''' create folder with path, remove old folder if it exist'''
-        folder_path = join(ROOT_DATABASE, MASTERIES_STORAGE, str(id_user))
-        if exists(folder_path):
-            try:
-                if remain: return folder_path
-                shutil.rmtree(folder_path)
-            except OSError as e:
-                pass
+    ''' create folder with path, remove old folder if it exist'''
+    folder_path = join(ROOT_DATABASE, MASTERIES_STORAGE, str(id_user))
+    if exists(folder_path):
+        try:
+            if remain: return folder_path
+            shutil.rmtree(folder_path)
+        except OSError as e:
+            pass
 
-        os.makedirs(folder_path)
-        
-        return folder_path
+    os.makedirs(folder_path)
+    
+    return folder_path
 
-def get_totalFile_Masteries(id_user, format = '.txt'):
-  folder_path = join(ROOT_DATABASE, MASTERIES_STORAGE, str(id_user))
-  return glob.glob(f'{folder_path}/*{format}')
+def get_totalFile_Masteries(id_user, format = '.txt') -> dict:
+    dict_txt = {}
+    folder_path = join(ROOT_DATABASE, MASTERIES_STORAGE, str(id_user))
+    for item in os.listdir(folder_path):
+      dict_txt.update({int(item.replace('.txt', '')):join(folder_path,item)})
+      
+    dict_txt = OrderedDict(sorted(dict_txt.items()))
 
+    return dict_txt
+
+
+def init_database(remain = True):
+    masteries_storage_path = join(ROOT_DATABASE, MASTERIES_STORAGE)
+    expbuffer_storage_path = join(ROOT_DATABASE, EXP_BUFFER)
+    create_database_folder(masteries_storage_path, remain)
+    create_database_folder(expbuffer_storage_path, remain)
+    return
+
+def create_database_folder(folder_path, remain = True):
+    if exists(folder_path):
+        try:
+            if remain: return 
+            shutil.rmtree(folder_path)
+        except OSError as e:
+            pass
+    
+    if not exists(ROOT_DATABASE):
+      os.makedirs(ROOT_DATABASE)
+    
+    os.makedirs(folder_path)
+    

@@ -8,6 +8,9 @@ class train_params:
     RANDOM_SEED = 99999999                  # Random seed for reproducability
     NUM_AGENTS = 1                    # Number of distributed agents to run simultaneously
     
+    # ======================= WARINGING ========================
+    REMAIN_DATABASE = False
+    
     # Create dummy environment to get all environment params
     if ENV == 'Pendulum-v0':
         dummy_env = PendulumWrapper()

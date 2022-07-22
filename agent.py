@@ -4,6 +4,7 @@
 @author: Mark Sinton (msinto93@gmail.com) 
 '''
 
+from math import fabs
 import os
 import sys
 import tensorflow as tf
@@ -371,7 +372,7 @@ class Agent:
                 delta = abs(int(action)- i)
                 if delta < temp :
                     temp = delta
-                    result = i
+                    result = np.array([i], dtype=np.float32)
 
         return result
 
@@ -384,6 +385,25 @@ class Agent:
             if value < 1:
                 return False
         return True
+
+    def load_checkpoint(self):
+        def load_ckpt(ckpt_dir, ckpt_file):
+            # Load ckpt given by ckpt_file, or else load latest ckpt in ckpt_dir
+            loader = tf.train.Saver()    
+            if ckpt_file is not None:
+                ckpt = ckpt_dir + '/' + ckpt_file  
+            else:
+                ckpt = tf.train.latest_checkpoint(ckpt_dir)
+             
+            loader.restore(self.sess, ckpt)
+            sys.stdout.write('%s restored.\n\n' % ckpt)
+            sys.stdout.flush() 
+             
+            ckpt_split = ckpt.split('-')
+            self.train_ep = ckpt_split[-1]
+        
+        # Load ckpt from ckpt_dir
+        load_ckpt(train_params.CKPT_DIR, train_params.CKPT_FILE)
     
     def test(self):   
         # Test a saved ckpt of actor network and save results to file (optional)
