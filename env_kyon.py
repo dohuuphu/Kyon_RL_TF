@@ -4,7 +4,7 @@ from utils_ import sigmoid, test_gen, test_gen_after, topic_recommender, mask_ot
 from gym import spaces
 from collections import Counter
 
-
+# from params import train_params
 
 import random
 
@@ -40,6 +40,7 @@ class SimStudent():
     self.history = []
     self.history_topic = []
 
+    self.percent_done_topic = 0
   #===============
   def get_state_dims(self):
     return (self.observation_space[2],)
@@ -57,7 +58,7 @@ class SimStudent():
     return state
 
   def normalise_reward(self, reward):
-    return reward#/10.0
+    return reward/1000#/10.0
 
   # def set_random_seed(self, seed)
   #   self._np_random, seed = seeding.np_random(seed)
@@ -168,9 +169,11 @@ class SimStudent():
 
   def is_complete_topic(self, topic_name):
     dict_LPvalue = self.get_LPvalue()
-    for value in dict_LPvalue[topic_name][LP_VALUE_STR]:
-      if value < 1 :
-        return False
+    count_zeros = dict_LPvalue[topic_name][LP_VALUE_STR].count(0)
+    # for value in dict_LPvalue[topic_name][LP_VALUE_STR]:
+    if count_zeros > 0 :
+      self.percent_done_topic = count_zeros/len(dict_LPvalue[topic_name][LP_VALUE_STR])
+      return False
     return True  
 
   def is_complete_topic_api(self, prev_state, action):
@@ -182,8 +185,8 @@ class SimStudent():
     self.history = []
     self.history_topic = []
 
-  def step(self, action):   
-    action = np.where(action == np.amax(action))[0]
+  def step(self, action, terminal):   
+    # action = np.where(action == np.amax(action))[0]
     action = action.astype(np.int32)
     action_mapping = LP_SEGMENT[self.history_topic[-1]][0] + action
     # check_mastered = True
@@ -203,15 +206,15 @@ class SimStudent():
 
     self.history.append(action_mapping) 
     if action >= (LP_SEGMENT[self.history_topic[-1]][1]-LP_SEGMENT[self.history_topic[-1]][0]) or action < 0:
-      reward += -1
+      reward += -100
       num_same_act = self.count_consecutive_actions(action_mapping)
       # reward += (num_same_act-1)*(-5)
 
     else:
       if self.true_masteries[int(action_mapping)] == 1:
-        reward += -1
+        reward += -100
       else:
-        reward += 1
+        reward += 0
       log_INFO(f'action_mapping: {action_mapping}')
       if action_mapping in range(len(LESSONS)):
         self.true_masteries = self.lesson_update_masteries(action_mapping)
@@ -241,14 +244,25 @@ class SimStudent():
 
     # Check learing a topic is done
     done = self.is_complete_topic(self.history_topic[-1])
-    if done: 
-      reward+=1
+    if done or terminal: 
+      reward+= (self.percent_done_topic + (1-len(self.history)/1000))*0.3*1000
       self.reset_infoInTopic()
+    else: 
+      reward -= len(self.history)
 
     # get and append new topic
     curr_topic = self.topic_recommender()
     self.history_topic.append(curr_topic)
     segment_LPs = self.mask_others_lp_not_in_topic(curr_topic)
+
+    if terminal:
+      curr_topic = self.topic_recommender()
+      self.history_topic.append(curr_topic)
+      segment_LPs = self.mask_others_lp_not_in_topic(curr_topic)
+    else:
+      curr_topic = self.topic_recommender()
+      self.history_topic.append(curr_topic)
+      segment_LPs = self.mask_others_lp_not_in_topic(curr_topic)
 
     # self.masteries = self.forget_update_masteries()
     # log_INFO(f'Done step \| masteries: {Counter(self.masteries)} - true_m {Counter(self.true_masteries)}, reward {reward}')

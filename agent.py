@@ -15,7 +15,7 @@ import cv2
 # import imageio
 import threading
 import json
-
+import random
 from params import train_params, test_params, play_params
 from utils.network import Actor, Actor_BN
 from utils.env_wrapper import PendulumWrapper, LunarLanderContinuousWrapper, BipedalWalkerWrapper
@@ -141,8 +141,9 @@ class Agent:
                 action = self.sess.run(self.actor_net.output , {self.state_ph:np.expand_dims(state, 0)})[0]     # Add batch dimension to single state input, and remove batch dimension from single action output
                 action_prev = np.where(action == np.amax(action))[0]
                 action += (gaussian_noise() * train_params.NOISE_DECAY**num_eps)
+                # action = self.random_zeros_location(state=state)
                 action_ = np.where(action == np.amax(action))[0]
-                next_state, reward, terminal = self.env_wrapper.step(action)
+                next_state, reward, terminal = self.env_wrapper.step(action, num_steps == train_params.MAX_EP_LENGTH)
                 
                 episode_reward += reward 
                                
@@ -376,6 +377,11 @@ class Agent:
 
         return result
 
+    def random_zeros_location(self, state):
+        list_zeroIndex = np.where(state == 0.0)[0]
+        return np.array([list_zeroIndex[random.randint(0,len(list_zeroIndex)-1)]],dtype=np.float32)
+
+
     def get_expBuffer(self, student_ID)->deque():
         return None
 
@@ -443,8 +449,8 @@ class Agent:
                 if test_params.RENDER:
                     self.env_wrapper.render()
                 temp = np.genfromtxt('./input.txt', dtype=np.float64)
-                action  = self.sess.run(self.actor_net.output, {self.state_ph:np.expand_dims(temp, 0)})[0] # Add batch dimension to single state input, and remove batch dimension from single action output
-                state, reward, terminal = self.env_wrapper.step(action)
+                action  = self.sess.run(self.actor_net.output, {self.state_ph:np.expand_dims(state, 0)})[0] # Add batch dimension to single state input, and remove batch dimension from single action output
+                state, reward, terminal = self.env_wrapper.step(action, step == test_params.MAX_EP_LENGTH)
                 state = self.env_wrapper.normalise_state(state)
                 
                 ep_reward += reward

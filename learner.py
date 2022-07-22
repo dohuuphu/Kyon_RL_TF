@@ -191,10 +191,10 @@ class Learner:
 
         # Save plot
         list_loss=[]
-        for loss in self.loss:
-            list_loss.append(sum(loss)/len(loss))
-        plt.plot(np.array(list_loss))
-        plt.savefig('loss.png')  
+        # for loss in self.loss:
+        #     list_loss.append(sum(loss)/len(loss))
+        # plt.plot(np.array(list_loss))
+        # plt.savefig('loss.png')  
 
     def run_api(self):
         # Sample batches of experiences from replay memory and train learner networks 
