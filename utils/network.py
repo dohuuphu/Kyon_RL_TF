@@ -104,7 +104,7 @@ class Actor:
             self.output_mul = dense(self.dense2, self.action_dims, weight_init=tf.random_uniform_initializer(-1*final_layer_init, final_layer_init),
                                 bias_init=tf.random_uniform_initializer(-1*final_layer_init, final_layer_init), scope='output') 
              
-            self.output_tanh = softmax(self.output_mul, scope='output')
+            self.output_tanh = tanh(self.output_mul, scope='output')
              
             # Scale tanh output to lower and upper action bounds
             self.output = tf.multiply(0.5, tf.multiply(self.output_tanh, (self.action_bound_high-self.action_bound_low)) + (self.action_bound_high+self.action_bound_low))

@@ -32,8 +32,8 @@ class GetReturnForBackend():
         total_learning_points = 0
 
         for index, topic in enumerate(topics):
-            if index < 3:
-                map_lp_topics[topic] = len(df.loc[df['topic'] == topic].values)
+            # if index < 3:
+            map_lp_topics[topic] = len(df.loc[df['topic'] == topic].values)
 
         for key in map_lp_topics:
             start = total_learning_points
@@ -65,7 +65,7 @@ data_backend = GetReturnForBackend()
 
 LP_SEGMENT, LESSONS, SKILL_NAMES, LP_DIFFICULT_VALUE, DATA_PARSED =  data_backend.normalize_input()
 
-LP_PER_TOPICS = [1]*70
+LP_PER_TOPICS = [1]*80
 SKILL_SPACES = [i+1 for i in LP_PER_TOPICS]
 NEW_SKILL_SPACES = [2.0]*35
 

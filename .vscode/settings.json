@@ -1,3 +1,4 @@
 {
-    "docwriter.progress.trackClasses": false
+    "docwriter.progress.trackClasses": false,
+    "python.pythonPath": "/home/hoangtv/anaconda3/envs/thanglq/bin/python"
 }
