@@ -362,7 +362,8 @@ class Agent:
                     self.env_wrapper.render()
                 temp = np.genfromtxt('./input.txt', dtype=np.float64)
                 action  = self.sess.run(self.actor_net.output, {self.state_ph:np.expand_dims(state, 0)})[0] # Add batch dimension to single state input, and remove batch dimension from single action output
-                state, reward, terminal = self.env_wrapper.step(action, step == test_params.MAX_EP_LENGTH)
+                action = self.mapping_action(action, state)
+                state, reward, terminal, _ = self.env_wrapper.step(action, step == test_params.MAX_EP_LENGTH)
                 state = self.env_wrapper.normalise_state(state)
                 
                 ep_reward += reward

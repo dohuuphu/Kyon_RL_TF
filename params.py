@@ -35,7 +35,7 @@ class train_params:
     
     # Training parameters
     BATCH_SIZE = 256#256
-    NUM_STEPS_TRAIN = 100000      # Number of steps to train for
+    NUM_STEPS_TRAIN = 10000      # Number of steps to train for
     MAX_EP_LENGTH = 1000           # Maximum number of steps per episode
     REPLAY_MEM_SIZE = 10000      # Soft maximum capacity of replay memory
     REPLAY_MEM_REMOVE_STEP = 200    # Check replay memory every REPLAY_MEM_REMOVE_STEP training steps and remove samples over REPLAY_MEM_SIZE capacity
