@@ -35,8 +35,8 @@ class train_params:
     
     # Training parameters
     BATCH_SIZE = 256#256
-    NUM_STEPS_TRAIN = 10000      # Number of steps to train for
-    MAX_EP_LENGTH = 1000           # Maximum number of steps per episode
+    NUM_STEPS_TRAIN = 50000      # Number of steps to train for
+    MAX_EP_LENGTH = 500           # Maximum number of steps per episode
     REPLAY_MEM_SIZE = 10000      # Soft maximum capacity of replay memory
     REPLAY_MEM_REMOVE_STEP = 200    # Check replay memory every REPLAY_MEM_REMOVE_STEP training steps and remove samples over REPLAY_MEM_SIZE capacity
     PRIORITY_ALPHA = 0.6            # Controls the randomness vs prioritisation of the prioritised sampling (0.0 = Uniform sampling, 1.0 = Greedy prioritisation)
@@ -46,7 +46,7 @@ class train_params:
     NOISE_SCALE = 0.45               # Scaling to apply to Gaussian noise
     NOISE_DECAY = 0.9999            # Decay noise throughout training by scaling by noise_decay**training_step
     DISCOUNT_RATE = 0.99            # Discount rate (gamma) for future rewards
-    N_STEP_RETURNS = 5              # Number of future steps to collect experiences for N-step returns
+    N_STEP_RETURNS = 3              # Number of future steps to collect experiences for N-step returns
     UPDATE_AGENT_EP = 10            # Agent gets latest parameters from learner every update_agent_ep episodes
     
     # Network parameters
@@ -61,9 +61,9 @@ class train_params:
     USE_BATCH_NORM = False          # Whether or not to use batch normalisation in the networks
   
     # Files/Directories
-    SAVE_CKPT_STEP = NUM_STEPS_TRAIN                # Save checkpoint every save_ckpt_step training steps
+    SAVE_CKPT_STEP = 10000 #NUM_STEPS_TRAIN                # Save checkpoint every save_ckpt_step training steps
     CKPT_DIR = './ckpts/' + ENV             # Directory for saving/loading checkpoints
-    CKPT_FILE = None                        # Checkpoint file to load and resume training from (if None, train from scratch)
+    CKPT_FILE = None #'kyon.ckpt-40000'                        # Checkpoint file to load and resume training from (if None, train from scratch)
     LOG_DIR = './logs/train/' + ENV         # Directory for saving Tensorboard logs (if None, do not save logs)
     
     

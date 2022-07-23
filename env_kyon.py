@@ -19,8 +19,8 @@ class SimStudent():
   def __init__(self, intelligence = 50, luck=50):
     self.observation_space = [0, 1, len(LP_PER_TOPICS)] # min max shape
     self.action_space = [0, len(LP_PER_TOPICS)-1, 1] # min max shape
-    self.v_min = -10.0
-    self.v_max = 2.0
+    self.v_min = -500.0
+    self.v_max = 20.0
 
     self.true_masteries = np.zeros(len(SKILL_INDS)).astype(np.float32)
 
@@ -58,7 +58,7 @@ class SimStudent():
     return state
 
   def normalise_reward(self, reward):
-    return reward/100
+    return reward/10
 
   # def set_random_seed(self, seed)
   #   self._np_random, seed = seeding.np_random(seed)
@@ -185,7 +185,7 @@ class SimStudent():
     self.history = []
     self.history_topic = []
 
-  def step(self, action, terminal):   
+  def step(self, action, terminal, state = None):   
     # action = np.where(action == np.amax(action))[0]
     action = action.astype(np.int32)
     action_mapping = LP_SEGMENT[self.history_topic[-1]][0] + action
@@ -206,13 +206,13 @@ class SimStudent():
 
     self.history.append(action_mapping) 
     if action >= (LP_SEGMENT[self.history_topic[-1]][1]-LP_SEGMENT[self.history_topic[-1]][0]) or action < 0:
-      reward += -10
+      reward += -100
       num_same_act = self.count_consecutive_actions(action_mapping)
       # reward += (num_same_act-1)*(-5)
 
     else:
       if self.true_masteries[int(action_mapping)] == 1:
-        reward += -10
+        reward += -100
       else:
         reward += 0
       log_INFO(f'action_mapping: {action_mapping}')
@@ -245,22 +245,22 @@ class SimStudent():
     # Check learing a topic is done
     done = self.is_complete_topic(self.history_topic[-1])
     if done: 
-      reward+= 10
+      reward+= 200
     elif terminal:
-      reward+= self.percent_done_topic*10
+      # reward+= -20#self.percent_done_topic*50
       done = True
 
-    reward -= len(self.history)  
+    reward -= len(self.history)*10  
     
 
     # get and append new topic
-    curr_topic = self.topic_recommender()
-    self.history_topic.append(curr_topic)
-    segment_LPs = self.mask_others_lp_not_in_topic(curr_topic)
+    # curr_topic = self.topic_recommender()
+    # self.history_topic.append(curr_topic)
+    segment_LPs = self.mask_others_lp_not_in_topic(self.history_topic[-1])
 
     # self.masteries = self.forget_update_masteries()
     # log_INFO(f'Done step \| masteries: {Counter(self.masteries)} - true_m {Counter(self.true_masteries)}, reward {reward}')
-    return self._get_obs(segment_LPs), np.array(reward, dtype=np.float32), done, curr_topic
+    return self._get_obs(segment_LPs), np.array(reward, dtype=np.float32), done, self.history_topic[-1]
 
   def set_topicDone(self, topic):
     start_idx, stop_idx = LP_SEGMENT[topic]

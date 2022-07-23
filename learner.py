@@ -204,10 +204,10 @@ class Learner:
         beta_increment = (train_params.PRIORITY_BETA_END - train_params.PRIORITY_BETA_START) / train_params.NUM_STEPS_TRAIN
         
         # Can only train when we have at least batch_size num of samples in replay memory
-        while len(self.PER_memory) <= train_params.BATCH_SIZE:
-            # sys.stdout.write('\rPopulating replay memory up to batch_size samples...')   
-            # sys.stdout.flush()
-            gc.collect()
+        # while len(self.PER_memory) <= train_params.BATCH_SIZE:
+        #     # sys.stdout.write('\rPopulating replay memory up to batch_size samples...')   
+        #     # sys.stdout.flush()
+        #     gc.collect()
         
         # Training
         # sys.stdout.write('\n\nTraining...\n')   
@@ -217,7 +217,7 @@ class Learner:
         temp_memory = 0
         train_step = 0
         while True:
-            if len(self.PER_memory) - temp_memory == 5:
+            if len(self.PER_memory) - temp_memory == train_params.BATCH_SIZE:
                 temp_memory = len(self.PER_memory)
                 train_step+=1
 
@@ -279,8 +279,8 @@ class Learner:
                         # Allow agent to continue adding experiences to replay memory
                         self.run_agent_event.set()
                         
-                sys.stdout.write('\rStep {:d}/{:d}'.format(train_step, train_params.NUM_STEPS_TRAIN))
-                sys.stdout.flush()  
+                # sys.stdout.write('\rStep {:d}/{:d}'.format(train_step, train_params.NUM_STEPS_TRAIN))
+                # sys.stdout.flush()  
                 
                 # Save ckpt periodically
                 if train_step % train_params.SAVE_CKPT_STEP == 0:

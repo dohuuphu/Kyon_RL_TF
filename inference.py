@@ -81,14 +81,14 @@ class Recommend_core():
             self.agent.build_summaries(train_params.LOG_DIR + ('/agent_%02d' % 1))
 
         # Perform initial copy of params from learner to agent
-        sess.run(self.agent.update_op)
+        # self.agent.sess.run(self.agent.update_op)
 
-        # Load checkpoint
-        try:
-            self.agent.load_checkpoint()
-        except:
-            sys.stdout.write('Checkpoint was not exist!!!\n\n')
-            sys.stdout.flush() 
+        # # Load checkpoint
+        # try:
+        #     self.agent.load_checkpoint()
+        # except:
+        #     sys.stdout.write('Checkpoint was not exist!!!\n\n')
+        #     sys.stdout.flush() 
 
         # Initialise var for logging episode reward
         if train_params.LOG_DIR is not None:
