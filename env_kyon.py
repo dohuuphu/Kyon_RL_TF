@@ -192,7 +192,7 @@ class SimStudent():
     self.history = []
     self.history_topic = []
 
-  def step(self, action, terminal):   
+  def step(self, action, terminal, state = None):   
     # action = np.where(action == np.amax(action))[0]
     action = action.astype(np.int32)
     action_mapping = self.lp_segment[self.history_topic[-1]][0] + action
@@ -257,17 +257,17 @@ class SimStudent():
       reward+= 0 # self.percent_done_topic*10
       done = True
 
-    reward -= len(self.history)  
+    reward -= len(self.history)*10  
     
 
     # get and append new topic
-    curr_topic = self.topic_recommender()
-    self.history_topic.append(curr_topic)
-    segment_LPs = self.mask_others_lp_not_in_topic(curr_topic)
+    # curr_topic = self.topic_recommender()
+    # self.history_topic.append(curr_topic)
+    segment_LPs = self.mask_others_lp_not_in_topic(self.history_topic[-1])
 
     # self.masteries = self.forget_update_masteries()
     # log_INFO(f'Done step \| masteries: {Counter(self.masteries)} - true_m {Counter(self.true_masteries)}, reward {reward}')
-    return self._get_obs(segment_LPs), np.array(reward, dtype=np.float32), done, curr_topic
+    return self._get_obs(segment_LPs), np.array(reward, dtype=np.float32), done, self.history_topic[-1]
 
   def set_topicDone(self, topic):
     start_idx, stop_idx = self.lp_segment[topic]

@@ -279,8 +279,8 @@ class Learner:
                         # Allow agent to continue adding experiences to replay memory
                         self.run_agent_event.set()
                         
-                sys.stdout.write('\rStep {:d}/{:d}'.format(train_step, train_params.NUM_STEPS_TRAIN))
-                sys.stdout.flush()  
+                # sys.stdout.write('\rStep {:d}/{:d}'.format(train_step, train_params.NUM_STEPS_TRAIN))
+                # sys.stdout.flush()  
                 
                 # Save ckpt periodically
                 if train_step % train_params.SAVE_CKPT_STEP == 0:

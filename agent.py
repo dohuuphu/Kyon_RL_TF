@@ -147,7 +147,7 @@ class Agent:
                 action += (gaussian_noise() * train_params.NOISE_DECAY**num_eps)
                 # action = self.random_zeros_location(state=state)
                 action_ = np.where(action == np.amax(action))[0]
-                next_state, reward, terminal, curr_topic = self.env_wrapper.step(action, num_steps == train_params.MAX_EP_LENGTH)
+                next_state, reward, terminal, curr_topic = self.env_wrapper.step(action, num_steps == train_params.MAX_EP_LENGTH, state)
                 
                 episode_reward += reward 
                                
@@ -169,7 +169,8 @@ class Agent:
                     run_agent_event.wait()   
                     PER_memory.add(state_0, action_0, discounted_reward, next_state, terminal, gamma)
 
-                if terminal:
+                if num_steps == train_params.MAX_EP_LENGTH or terminal:
+                    num_steps = 0
                     next_state = self.env_wrapper.set_topicDone(curr_topic)
 
                 state = next_state
@@ -414,18 +415,22 @@ class Agent:
                 temp = np.genfromtxt('./input.txt', dtype=np.float64)
                 action  = self.sess.run(self.actor_net.output, {self.state_ph:np.expand_dims(state, 0)})[0] # Add batch dimension to single state input, and remove batch dimension from single action output
                 action = self.mapping_action(action, state)
-                state, reward, terminal, _ = self.env_wrapper.step(action, step == test_params.MAX_EP_LENGTH)
+                state, reward, terminal, curr_topic = self.env_wrapper.step(action, step == test_params.MAX_EP_LENGTH)
                 state = self.env_wrapper.normalise_state(state)
                 
                 ep_reward += reward
                 step += 1
+
+                if step == test_params.MAX_EP_LENGTH or terminal:
+                    num_steps = 0
+                    state = self.env_wrapper.set_topicDone(curr_topic)
                  
                 # Episode can finish either by reaching terminal state or max episode steps
                 if terminal or step == test_params.MAX_EP_LENGTH:
                     sys.stdout.write('\x1b[2K\rTest episode {:d}/{:d}'.format(test_ep, test_params.NUM_EPS_TEST))
                     sys.stdout.flush()   
                     rewards.append(ep_reward)
-                    ep_done = True   
+                    ep_done = self.is_TopicsDone(state)   
                 
         mean_reward = np.mean(rewards)
         error_reward = ss.sem(rewards)
