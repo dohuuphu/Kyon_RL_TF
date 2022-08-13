@@ -84,11 +84,11 @@ class Recommend_core():
         sess.run(self.agent.update_op)
 
         # Load checkpoint
-        try:
-            self.agent.load_checkpoint()
-        except:
-            sys.stdout.write('Checkpoint was not exist!!!\n\n')
-            sys.stdout.flush() 
+        # try:
+        #     self.agent.load_checkpoint()
+        # except:
+        #     sys.stdout.write('Checkpoint was not exist!!!\n\n')
+        #     sys.stdout.flush() 
 
         # Initialise var for logging episode reward
         if train_params.LOG_DIR is not None:
@@ -110,8 +110,8 @@ class Recommend_core():
         # for t in threads:
         #     t.join()
     
-    def get_learningPoint(self, student_ID, subject, history_topic, history_action, masteries, history_score):
-        return self.agent.inference(student_ID, subject, history_topic, self.PER_memory, self.run_agent_event, history_action, masteries, history_score)
+    def get_learningPoint(self, student_ID, subject, level, masteries, history_score):
+        return self.agent.inference(student_ID, subject, level, self.PER_memory, self.run_agent_event, masteries, history_score)
 
     # def  get_learningPoint()
 # if  __name__ == '__main__':

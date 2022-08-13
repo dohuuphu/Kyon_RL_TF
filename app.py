@@ -28,5 +28,5 @@ if __name__ == '__main__':
     model = Recommend_core()
 
     KyonRL_setup(app, model)
-    
-    uvicorn.run(app ,host='0.0.0.0', port=35010)
+
+    uvicorn.run(app, host='0.0.0.0', port=35616)

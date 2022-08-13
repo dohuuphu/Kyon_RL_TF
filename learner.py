@@ -204,10 +204,10 @@ class Learner:
         beta_increment = (train_params.PRIORITY_BETA_END - train_params.PRIORITY_BETA_START) / train_params.NUM_STEPS_TRAIN
         
         # Can only train when we have at least batch_size num of samples in replay memory
-        while len(self.PER_memory) <= train_params.BATCH_SIZE:
-            # sys.stdout.write('\rPopulating replay memory up to batch_size samples...')   
-            # sys.stdout.flush()
-            gc.collect()
+        # while len(self.PER_memory) <= train_params.BATCH_SIZE:
+        #     # sys.stdout.write('\rPopulating replay memory up to batch_size samples...')   
+        #     # sys.stdout.flush()
+        #     gc.collect()
         
         # Training
         # sys.stdout.write('\n\nTraining...\n')   
@@ -217,7 +217,7 @@ class Learner:
         temp_memory = 0
         train_step = 0
         while True:
-            if len(self.PER_memory) - temp_memory == 5:
+            if len(self.PER_memory) - temp_memory >=  train_params.BATCH_SIZE:
                 temp_memory = len(self.PER_memory)
                 train_step+=1
 
@@ -288,7 +288,7 @@ class Learner:
                     sys.stdout.write('\nCheckpoint saved.\n')   
                     sys.stdout.flush() 
             
-                gc.collect()
+            gc.collect()
             # Stop the agents
             # self.stop_agent_event.set()     
 

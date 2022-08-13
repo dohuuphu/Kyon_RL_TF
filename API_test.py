@@ -1,17 +1,21 @@
 # importing the requests library
 import requests
 import numpy as np
-
+import json
 # api-endpoint
-URL = "http://0.0.0.0:35010/recommender"
+URL = "http://0.0.0.0:35616/recommender"
 
-masteries = [1.0* i for i in np.random.randint(2, size=1034)]
+# masteries = [1.0* i for i in np.random.randint(2, size=1034)]
+with open('masteries.json','r') as f:
+    masteries =  json.load(f)
+print(masteries)
 
 PARAMS = {
         "student_id": 1,
         "subject": "English",
-        "history_topic":["Unit 1"],
-        "history_action": [20],
+        # "history_topic":["Verbs and objects"],
+        # "history_action": [607],
+        "history_action":[],
         "masteries": masteries,
         "history_score": [5]
     }

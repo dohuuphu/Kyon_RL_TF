@@ -8,11 +8,11 @@ from utils_ import format_result
 from api.response import APIResponse
 
 class Item(BaseModel):
-    student_id: int
+    student_id: str
     subject: str
-    history_topic: list
-    history_action: list
-    masteries: list
+    program_level:int
+    # history_topic: list
+    masteries: dict
     history_score: list
 
 
@@ -20,16 +20,13 @@ def KyonRL_setup(app, RL_model):
     executor = ThreadPoolExecutor()
 
     def execute_api(item: Item):
-        # item.masteries = [i*1.0 for i in item.masteries]
         try:
-            student_ID, action, topic_name = RL_model.get_learningPoint(item.student_id, item.subject, item.history_topic, item.history_action, item.masteries, item.history_score)
-            result = format_result(student_ID, action, topic_name)
-
+            student_ID, action = RL_model.get_learningPoint(item.student_id, item.subject, str(item.program_level), item.masteries, item.history_score)
         except OSError as e:
             print(e)
-            result = None
+            action = None
 
-        return APIResponse.json_format(result)
+        return APIResponse.json_format(action)
 
 
     @app.post('/recommender')

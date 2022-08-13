@@ -16,13 +16,20 @@ def log_INFO(message):
   
 class SimStudent():
       # An observation of the environment is a list of skill mastery, each value [0,1] represents the student's learning progress of a skill
-  def __init__(self, intelligence = 50, luck=50):
+  def __init__(self, intelligence = 50, luck=50, level = "10"):
     self.observation_space = [0, 1, len(LP_PER_TOPICS)] # min max shape
     self.action_space = [0, len(LP_PER_TOPICS)-1, 1] # min max shape
-    self.v_min = -10.0
-    self.v_max = 2.0
-
-    self.true_masteries = np.zeros(len(SKILL_INDS)).astype(np.float32)
+    self.v_min = -100.0
+    self.v_max = 0.
+    
+    # Get info for level particular
+    self.skill_INDs = LESSON_DATABASE.get_skill_IND(level)
+    self.lp_segment = LESSON_DATABASE.get_LPsegments(level)
+    # self.lesson = LESSON_DATABASE.get_lessons(level)
+    self.skill_level = LESSON_DATABASE.get_skill_level(level)
+    # self.lp_difficult_value = LESSON_DATABASE.get_LP_difficult_value(level)
+    self.len_masteries = LESSON_DATABASE.get_len_masteries(level)
+    self.true_masteries = np.zeros(len(self.skill_INDs)).astype(np.float32)
 
     self.answer_rate1 = 1
     self.answer_rate2 = 0.0
@@ -31,7 +38,7 @@ class SimStudent():
 
 
     # Initial test result
-    test = test_gen(SKILL_INDS, NUM_QUESTIONS_PER_TEST)
+    # test = test_gen(self.skill_INDs, NUM_QUESTIONS_PER_TEST)
     self.masteries = self.true_masteries#self.test_update_masteries(test)
     # score = self.get_test_score(test, self.true_masteries)
     self.last_score = 0
@@ -58,7 +65,7 @@ class SimStudent():
     return state
 
   def normalise_reward(self, reward):
-    return reward/100
+    return reward
 
   # def set_random_seed(self, seed)
   #   self._np_random, seed = seeding.np_random(seed)
@@ -68,17 +75,17 @@ class SimStudent():
   def mask_others_lp_not_in_topic(self,topic:str):
     
     mask_masteries = LP_PER_TOPICS.copy()
-    for idx, val in enumerate(self.true_masteries[LP_SEGMENT[topic][0]:LP_SEGMENT[topic][1]]):
+    for idx, val in enumerate(self.true_masteries[self.lp_segment[topic][0]:self.lp_segment[topic][1]]):
       mask_masteries[idx] *= val
 
     return mask_masteries
 
   def get_LPvalue(self) -> dict:
     list_LPvalue = {}
-    for topic in LP_SEGMENT: 
-      start_idx, stop_idx = LP_SEGMENT[topic]
+    for topic in self.lp_segment: 
+      start_idx, stop_idx = self.lp_segment[topic]
       list_LPvalue.update({topic: {LP_VALUE_STR:[self.true_masteries[i] for i in range(start_idx, stop_idx, 1)],
-                                  LP_DIFFICULT_STR:[LP_DIFFICULT_VALUE[i] for i in range(start_idx, stop_idx, 1)]}})
+                                  }}) #LP_DIFFICULT_STR:[self.lp_difficult_value[i] for i in range(start_idx, stop_idx, 1)]
 
     return list_LPvalue
 
@@ -119,7 +126,7 @@ class SimStudent():
   def answer_question(self, question, masteries):
     raw_prob = 1
     for req in question:
-      raw_prob = raw_prob*masteries[req]/SKILL_LEVELS[req]
+      raw_prob = raw_prob*masteries[req]/self.skill_level[req]
     answer_prob = raw_prob*self.answer_rate1 + self.answer_rate2
     if answer_prob>1: answer_prob = 1
     if answer_prob<0: answer_prob = 0
@@ -135,8 +142,8 @@ class SimStudent():
 
   def test_update_masteries(self, test):
     correct, all = {}, {}
-    new_masteries = np.zeros(len(SKILL_INDS))
-    for skill in SKILL_INDS:
+    new_masteries = np.zeros(len(self.skill_INDs))
+    for skill in self.skill_INDs:
       correct[skill] = 0
       all[skill] = 0
     for question in test:
@@ -146,14 +153,14 @@ class SimStudent():
         all[skill]+=1
     for skill in all:
       if all[skill]!=0:
-        new_masteries[skill] = int(correct[skill]/all[skill]*SKILL_LEVELS[skill])
+        new_masteries[skill] = int(correct[skill]/all[skill]*self.skill_level[skill])
     return [int(i) for i in new_masteries]
     
   def lesson_update_masteries(self, lesson_ind):
     new_masteries = self.true_masteries
-    contained_skills = LESSONS[int(lesson_ind)]['skills']
+    contained_skills = self.lesson[int(lesson_ind)]['skills']
     for skill,mastery in enumerate(self.true_masteries):
-      if mastery<SKILL_LEVELS[skill] and skill in contained_skills:
+      if mastery < self.skill_level[skill] and skill in contained_skills:
         gain = np.random.choice([1,0],p=[self.learn_prob, 1-self.learn_prob])
         new_masteries[skill] += gain
     return [int(i) for i in new_masteries]
@@ -188,7 +195,7 @@ class SimStudent():
   def step(self, action, terminal):   
     # action = np.where(action == np.amax(action))[0]
     action = action.astype(np.int32)
-    action_mapping = LP_SEGMENT[self.history_topic[-1]][0] + action
+    action_mapping = self.lp_segment[self.history_topic[-1]][0] + action
     # check_mastered = True
     # for i,m in enumerate(self.true_masteries):
     #   if m<SKILL_LEVELS[i]: check_mastered=False
@@ -205,36 +212,36 @@ class SimStudent():
           break
 
     self.history.append(action_mapping) 
-    if action >= (LP_SEGMENT[self.history_topic[-1]][1]-LP_SEGMENT[self.history_topic[-1]][0]) or action < 0:
-      reward += -10
+    if action >= (self.lp_segment[self.history_topic[-1]][1]-self.lp_segment[self.history_topic[-1]][0]) or action < 0:
+      reward += 0
       num_same_act = self.count_consecutive_actions(action_mapping)
       # reward += (num_same_act-1)*(-5)
 
     else:
       if self.true_masteries[int(action_mapping)] == 1:
-        reward += -10
+        reward += 0
       else:
         reward += 0
       log_INFO(f'action_mapping: {action_mapping}')
-      if action_mapping in range(len(LESSONS)):
+      if action_mapping in range(self.len_masteries):
         self.true_masteries = self.lesson_update_masteries(action_mapping)
         # self.masteries = self.lesson_update_masteries(action)
-        log_INFO(f'after lesson \| masteries: {Counter(self.masteries)} - true_m {Counter(self.true_masteries)}, reward {reward}')
+        # log_INFO(f'after lesson \| masteries: {Counter(self.masteries)} - true_m {Counter(self.true_masteries)}, reward {reward}')
         # reward += -1*penalty_weight # penalty term
       # if len(self.history)==MAX_NUM_ACTIONS or len(self.history)%NUM_ACTIONS_PER_TEST==0 or check_mastered==True:
 
         # Take a test after this action
         # test = test_gen_after(SKILL_INDS,NUM_QUESTIONS_PER_TEST,action_mapping)
         # self.masteries = self.test_update_masteries(test)
-        log_INFO(f'after test \| masteries: {Counter(self.masteries)} - true_m {Counter(self.true_masteries)}, reward {reward}')
-        score = 0#self.get_test_score(test, self.true_masteries)
-        log_INFO(f'test score \| masteries: {Counter(self.masteries)} - true_m {Counter(self.true_masteries)}, reward {reward}')
+        # log_INFO(f'after test \| masteries: {Counter(self.masteries)} - true_m {Counter(self.true_masteries)}, reward {reward}')
+        # score = 0#self.get_test_score(test, self.true_masteries)
+        # log_INFO(f'test score \| masteries: {Counter(self.masteries)} - true_m {Counter(self.true_masteries)}, reward {reward}')
         # if score==0: reward+=0
         # elif score==10: reward+=10 # max test score
         # else: 
         #   reward += (score-self.last_score)*0.5# - 1*penalty_weight
 
-        self.last_score = score
+        # self.last_score = score
 
 
       num_same_act = self.count_consecutive_actions(action_mapping)
@@ -245,9 +252,9 @@ class SimStudent():
     # Check learing a topic is done
     done = self.is_complete_topic(self.history_topic[-1])
     if done: 
-      reward+= 10
+      reward+= 0#10
     elif terminal:
-      reward+= self.percent_done_topic*10
+      reward+= 0 # self.percent_done_topic*10
       done = True
 
     reward -= len(self.history)  
@@ -263,7 +270,7 @@ class SimStudent():
     return self._get_obs(segment_LPs), np.array(reward, dtype=np.float32), done, curr_topic
 
   def set_topicDone(self, topic):
-    start_idx, stop_idx = LP_SEGMENT[topic]
+    start_idx, stop_idx = self.lp_segment[topic]
     for i in range(start_idx, stop_idx, 1):
       self.true_masteries[i] = 1.0
 
@@ -276,38 +283,40 @@ class SimStudent():
 
     return self._get_obs(segment_LPs)
 
-  def step_api(self, curr_topic, history_action:list, prev_state, history_score): 
+  def step_api(self, index, level, curr_topic, action, prev_state, history_score): 
     reward = 0
     done = False
-
-    if len(history_action) != 0 and prev_state is not None:  
-      action = history_action[-1]
+    # lp_segment = LESSON_DATABASE.get_LPsegments(level)
+    if prev_state is not None:  
+      # action = history_action[-1]
       # action = np.where(action == np.amax(action))[0] # using for discrete
       # action = action.astype(np.int32)
       # history_topic = list(history_action.keys()) # need mapping
-      action_mapping = LP_SEGMENT[curr_topic][0] + action
+      # action_mapping = lp_segment[curr_topic][0] + action
+      action_mapping = action
 
       # reward for predict prev_action
-      if len(self.history)>0:
-        for i in range(len(self.history)-1 , -1 , -1):
-          if self.history[i]==action_mapping: 
-            reward+=0
-          else:
-            break
+      # if len(self.history)>0:
+      #   for i in range(len(self.history)-1 , -1 , -1):
+      #     if self.history[i]==action_mapping: 
+      #       reward+=0
+      #     else:
+      #       break
 
 
-      if action >= (LP_SEGMENT[curr_topic][1]-LP_SEGMENT[curr_topic][0]) or action < 0:
+      # if action >= (lp_segment[curr_topic][1]-lp_segment[curr_topic][0]) or action < 0:
+      #   reward += -1
+      #   num_same_act = self.count_consecutive_actions(action_mapping)
+      #   # reward += (num_same_act-1)*(-5)
+
+      # else:
+      if prev_state[int(action)] == 1:
         reward += -1
-        num_same_act = self.count_consecutive_actions(action_mapping)
-        # reward += (num_same_act-1)*(-5)
-
       else:
-        if prev_state[int(action)] == 1:
-          reward += -1
-        else:
-          reward += 1
+        reward += 0
 
-        num_same_act = self.count_consecutive_actions(action_mapping)
+      reward -= index
+        # num_same_act = self.count_consecutive_actions(action_mapping)
         # reward += (num_same_act-1)*(-1)
 
       # Check learing a topic is done
@@ -319,9 +328,9 @@ class SimStudent():
     return np.array(reward, dtype=np.float32), done
 
   def reset(self):
-    self.true_masteries = np.zeros(len(SKILL_INDS))
+    self.true_masteries = np.zeros(len(self.skill_INDs))
     for i,m in enumerate(self.true_masteries):
-      self.true_masteries[i] = random.randint(0,SKILL_LEVELS[i])
+      self.true_masteries[i] = random.randint(0,self.skill_level[i])
 
     # # self.masteries = np.zeros(len(SKILL_INDS))
     # new_masteries = np.zeros(len(SKILL_INDS))

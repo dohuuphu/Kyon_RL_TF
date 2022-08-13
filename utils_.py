@@ -7,9 +7,11 @@ import shutil
 from variables import *
 
 from collections import deque, OrderedDict
-
+import pandas as pd
 
 from os.path import dirname, join, basename, exists
+
+from variables_old import LP_SEGMENT
 
 def sigmoid(x):
       return 1 / (1 + math.exp(-x))
@@ -88,49 +90,51 @@ def test_gen_after(skills,num_q,action):
 
   return test
 
-def get_LPvalue(masteries:list) -> dict:
+def get_LPvalue(masteries:list, level:str) -> dict:
     list_LPvalue = {}
-    for topic in LP_SEGMENT: 
-      start_idx, stop_idx = LP_SEGMENT[topic]
-      list_LPvalue.update({topic: {LP_VALUE_STR:[masteries[i] for i in range(start_idx, stop_idx, 1)],
-                                  LP_DIFFICULT_STR:[LP_DIFFICULT_VALUE[i] for i in range(start_idx, stop_idx, 1)]}})
-
+    lp_segment = LESSON_DATABASE.get_LPsegments(level)
+    # lp_difficult_value = LESSON_DATABASE.get_LP_difficult_value(level)
+    try:
+      for topic in lp_segment: 
+        start_idx, stop_idx = lp_segment[topic]
+        list_LPvalue.update({topic: {LP_VALUE_STR:[masteries[i] for i in range(start_idx, stop_idx, 1)]
+                                    }}) #LP_DIFFICULT_STR:[lp_difficult_value[i] for i in range(start_idx, stop_idx, 1)]
+    except:
+      print(f'ERROR - get_LPvalue -topic {topic}  ')
     return list_LPvalue
       
-def calculate_topicWeight(masteries:list) -> dict:
+def calculate_topicWeight(masteries:list, level:str) -> dict:
   '''Calculate topic_weight by LP_value and LP_difficult
     Return format: {topic : weight (0-1)} '''
-  dict_LPvalue = get_LPvalue(masteries)
+  dict_LPvalue = get_LPvalue(masteries, level)
   topic_weights = {}
   for topic in dict_LPvalue:
     weight = 0
-    total_element = 0
-    for value, difficult in zip(dict_LPvalue[topic][LP_VALUE_STR], dict_LPvalue[topic][LP_DIFFICULT_STR]):
-      weight += (value*difficult)
-      total_element += difficult
+    for value in dict_LPvalue[topic][LP_VALUE_STR]:
+      weight += (value)
     
     #update dict_result
-    topic_weights.update({topic : (weight/total_element)})
+    topic_weights.update({topic : (weight/len(dict_LPvalue[topic][LP_VALUE_STR]))})
 
   return topic_weights
 
 def find_minTopicWeight(topic_weights:dict) -> str:
   '''find minimum topicWeight
     Return topic name'''
-  return min(topic_weights, key=topic_weights.get)
+  return max(topic_weights, key=topic_weights.get)
   
-def topic_recommender(masteries:list, curr_topic=None):
+def topic_recommender(masteries:list, level:str, curr_topic=None):
 
-  topic_Weights = calculate_topicWeight(masteries)
+  topic_Weights = calculate_topicWeight(masteries, level)
   if curr_topic is None or topic_Weights[curr_topic] == 1:
     curr_topic = find_minTopicWeight(topic_Weights)
 
   return curr_topic
 
-def mask_others_lp_not_in_topic(masteries:list ,topic:str):
-  
+def mask_others_lp_not_in_topic(masteries:list , topic:str, level:str):
+  Lp_segment = LESSON_DATABASE.get_LPsegments(level)
   mask_masteries = LP_PER_TOPICS.copy()
-  for idx, val in enumerate(masteries[LP_SEGMENT[topic][0]:LP_SEGMENT[topic][1]]):
+  for idx, val in enumerate(masteries[Lp_segment[topic][0]:Lp_segment[topic][1]]):
     mask_masteries[idx] *= val
 
   return format_observation(mask_masteries)
@@ -139,16 +143,16 @@ def format_observation(list_ : list):
   return np.array([i*1.0 for i in list_], dtype=np.float64)
 
 
-def format_result( student_ID:int, id:int, topic_name:str):
+def format_result( student_ID:int, id:int, topic_name:str, level:str):
   '''format result as dictionary to return backend'''
 
-  return DATA_PARSED[topic_name][int(id[0])]
+  return LESSON_DATABASE.get_data_parsed(level)[topic_name][int(id[0])]
   
 
-def load_deque(id_user:int):
+def load_deque(id_user:str, level:str):
     exp_buffer = deque()
     try:
-      with open(join(ROOT_DATABASE, EXP_BUFFER, f'{id_user}.txt'),'r') as f:
+      with open(join(ROOT_DATABASE, EXP_BUFFER, f'{id_user}_{level}.txt'),'r') as f:
           infomation = f.readlines()
           for line in infomation:
               line = line.split('\t')
@@ -161,8 +165,8 @@ def load_deque(id_user:int):
 
     return exp_buffer
             
-def save_deque(id_user, deque):
-  with open(join(ROOT_DATABASE, EXP_BUFFER, f'{id_user}.txt'), 'w') as f:
+def save_deque(id_user, level, deque):
+  with open(join(ROOT_DATABASE, EXP_BUFFER, f'{id_user}_{level}.txt'), 'w') as f:
     for i in range(len(list(deque))):
         state = list(deque[i])[0]
         action = list(deque[i])[1]
@@ -171,11 +175,34 @@ def save_deque(id_user, deque):
         format_save = str(list(state)) + '\t' + str(action) + '\t' + str(reward) + '\n' 
         f.write(format_save)
 
-def save_masteries(id_user, masteries:list):
-  folder_path = create_folder(id_user)
-  if len(get_totalFile_Masteries(id_user)) > 10:
+def log_history(id, id_user, subject:str, level:str, masteries:list, curr_topic:str, recommend_action:int, action_state:int, score, dataframe:pd.DataFrame = None):
+  user_name = f'{id_user}_{subject}_{level}'
+  df = pd.DataFrame([[id, id_user, subject, level, masteries, curr_topic, recommend_action, action_state, score]], 
+            columns=['id', 'user_id', 'subject', 'level', 'masteries', 'curr_topic', 'recommend_action', 'action_state', 'score'])
+
+  if dataframe is None:
+    df.to_csv(join('history',f'{user_name}.csv'),index=False)
+  else:
+    df.to_csv(join('history', f'{user_name}.csv'), mode='a', header=False, index=False)
+    
+  # if os.path.exists(join('history',f'{user_name}.csv')):
+  #   df = pd.read_csv(join('history',f'{user_name}.csv'))
+  #   df_new = pd.DataFrame([[id_user, subject, level, masteries, curr_topic, recommend_action, score]], columns=['user_id', 'subject', 'level', 'masteries', 'curr_topic', 'recommend_action', 'score'])
+  #   df = pd.concat([df, df_new])
+  #   df.to_csv(join('history', f'{user_name}.csv'), index=False)
+  
+  # else:
+  #   df = pd.DataFrame([[id_user, subject, level, masteries, curr_topic, recommend_action, score]], columns=['user_id', 'subject', 'level', 'masteries', 'curr_topic', 'recommend_action', 'score'])
+  #   df.to_csv(join('history',f'{user_name}.csv'),index=False)
+
+  
+
+def save_masteries(id_user:str, level:str, masteries:list):
+  name_folder = f'{id_user}_{level}'
+  folder_path = create_folder(name_folder)
+  if len(get_totalFile_Masteries(id_user, level)) > 10:
     remove_item_inFolder(folder_path)
-  name_txt = f'{len(get_totalFile_Masteries(id_user))}.txt'
+  name_txt = f'{len(get_totalFile_Masteries(name_folder))}.txt'
   with open(join(folder_path, name_txt), 'w') as f:
         f.write(str(masteries))
 
@@ -207,7 +234,7 @@ def create_folder( id_user, remain = True):
     
     return folder_path
 
-def get_totalFile_Masteries(id_user, format = '.txt') -> dict:
+def get_totalFile_Masteries(id_user, level, format = '.txt') -> dict:
     dict_txt = {}
     folder_path = join(ROOT_DATABASE, MASTERIES_STORAGE, str(id_user))
     for item in os.listdir(folder_path):

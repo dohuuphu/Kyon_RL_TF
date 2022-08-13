@@ -34,7 +34,7 @@ class train_params:
     del dummy_env
     
     # Training parameters
-    BATCH_SIZE = 256#256
+    BATCH_SIZE = 5#256
     NUM_STEPS_TRAIN = 10000      # Number of steps to train for
     MAX_EP_LENGTH = 1000           # Maximum number of steps per episode
     REPLAY_MEM_SIZE = 10000      # Soft maximum capacity of replay memory
@@ -61,9 +61,9 @@ class train_params:
     USE_BATCH_NORM = False          # Whether or not to use batch normalisation in the networks
   
     # Files/Directories
-    SAVE_CKPT_STEP = NUM_STEPS_TRAIN                # Save checkpoint every save_ckpt_step training steps
+    SAVE_CKPT_STEP = 100                # Save checkpoint every save_ckpt_step training steps
     CKPT_DIR = './ckpts/' + ENV             # Directory for saving/loading checkpoints
-    CKPT_FILE = None                        # Checkpoint file to load and resume training from (if None, train from scratch)
+    CKPT_FILE = 'kyon.ckpt-100000'                        # Checkpoint file to load and resume training from (if None, train from scratch)
     LOG_DIR = './logs/train/' + ENV         # Directory for saving Tensorboard logs (if None, do not save logs)
     
     
@@ -80,7 +80,7 @@ class test_params:
     
     # Files/directories
     CKPT_DIR = './ckpts/' + ENV                             # Directory for saving/loading checkpoints
-    CKPT_FILE = None                                        # Checkpoint file to load and test (if None, load latest ckpt)
+    CKPT_FILE = './ckpts/kyon/kyon.ckpt-1000000'                                       # Checkpoint file to load and test (if None, load latest ckpt)
     RESULTS_DIR = './test_results'                          # Directory for saving txt file of results (if None, do not save results)
     LOG_DIR = './logs/test/' + ENV                          # Directory for saving Tensorboard logs (if None, do not save logs)
 
