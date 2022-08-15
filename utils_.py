@@ -11,8 +11,6 @@ import pandas as pd
 
 from os.path import dirname, join, basename, exists
 
-from variables_old import LP_SEGMENT
-
 def sigmoid(x):
       return 1 / (1 + math.exp(-x))
 
@@ -175,10 +173,11 @@ def save_deque(id_user, level, deque):
         format_save = str(list(state)) + '\t' + str(action) + '\t' + str(reward) + '\n' 
         f.write(format_save)
 
-def log_history(id, id_user, subject:str, level:str, masteries:list, curr_topic:str, recommend_action:int, action_state:int, score, dataframe:pd.DataFrame = None):
+def log_history(id, id_user, subject:str, level:str, masteries:list, recommend_action:int, action_state:int, score, dataframe:pd.DataFrame = None):
   user_name = f'{id_user}_{subject}_{level}'
-  df = pd.DataFrame([[id, id_user, subject, level, masteries, curr_topic, recommend_action, action_state, score]], 
-            columns=['id', 'user_id', 'subject', 'level', 'masteries', 'curr_topic', 'recommend_action', 'action_state', 'score'])
+
+  df = pd.DataFrame([[id, id_user, subject, level, masteries, recommend_action, action_state, score]], 
+            columns=['id', 'user_id', 'subject', 'level', 'masteries', 'recommend_action', 'action_state', 'score'])
 
   if dataframe is None:
     df.to_csv(join('history',f'{user_name}.csv'),index=False)

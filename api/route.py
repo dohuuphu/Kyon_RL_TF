@@ -3,7 +3,7 @@ from concurrent.futures.thread import ThreadPoolExecutor
 import asyncio
 from pydantic import BaseModel
 from typing import List
-from utils_ import format_result
+# from utils_ import format_result
 
 from api.response import APIResponse
 

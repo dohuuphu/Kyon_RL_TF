@@ -29,7 +29,7 @@ import gc
 import time
 
 import tensorflow.compat.v1 as tf
-from variables_old import LP_SEGMENT
+
 tf.disable_v2_behavior() 
 
 from utils_ import log_history, topic_recommender, mask_others_lp_not_in_topic, load_deque, save_deque, read_masteries, save_masteries
@@ -201,89 +201,90 @@ class Agent:
         
         # self.env_wrapper.close()
 
-    
+    def map_masteries_to_state(self, masteries:list):
+        state = [1.0]*len(LP_PER_TOPICS)
+        for id, value in enumerate(masteries):
+            state[id] *= value
+        
+        return np.array(state, dtype=np.float64)
+
+    def update_masteries(self, user_name:str, curr_masteries:list, new_value:dict):
+        mapping = self.read_write_txt(user_name, mode='read')
+        for id_ in new_value:
+            pos = mapping.index(id_)
+            curr_masteries[pos] = new_value[id_]
+        
+        return curr_masteries
+
+    def read_write_txt(self, username, masteries:dict = None, mode = 'read' ):
+        if mode == 'read':
+            return ast.literal_eval(open(f'./firstTest_masteries/{username}.txt', 'r').read())
+        else:
+            if masteries is None:
+                raise print("Write must need masteries!!!!")
+            with open(f'./firstTest_masteries/{username}.txt', 'w') as w:
+                w.writelines(f'{list(masteries.keys())}')
+
+    def new_firtTestMasteries(self, update_masteries:dict):
+        try:
+            if len(update_masteries) > 1:
+                return True
+        except:
+            pass
+        return False
+
     def inference(self, student_ID, subject, level, PER_memory, run_agent_event, update_masteries, history_score):
-        list_masteries = []
-        last_curr_masteries = []
 
-        database_parsed = LESSON_DATABASE.get_data_parsed(level)
 
-        for k,v in database_parsed.items():
-            for value in v:
-                list_masteries.append(value)
+        # database_parsed = LESSON_DATABASE.get_data_parsed(level)
+        curr_masteries = None
+        test_masteries = {}
 
         user_name = f'{student_ID}_{subject}_{level}'
-        if os.path.exists(join('history',f'{user_name}.csv')):
+        write_new_masteries = self.new_firtTestMasteries(update_masteries)
+
+        if os.path.exists(join('history',f'{user_name}.csv')) and not write_new_masteries :
             dataframe = pd.read_csv(join('history',f'{user_name}.csv'))
-            # start = time.time()
-            # old_action = str(dataframe.tail(1)['recommend_action'].values[0])
-            # curr_masteries = ast.literal_eval(dataframe.tail(1)['masteries'].values[0])
-            # curr_topic = str(dataframe.tail(1)['curr_topic'].values[0])
-            # prev_state = mask_others_lp_not_in_topic(curr_masteries, curr_topic, level)
-            # index = str(dataframe.tail(1)['id'].values[0]+1)
-            # print(f'a: {time.time()-start}')
-            # start = time.time()
             lastest_info = dataframe.iloc[-1]
             index = int(lastest_info.id)+1
             old_action = lastest_info.action_state
-            curr_masteries = ast.literal_eval(lastest_info.masteries)
-            curr_topic = lastest_info.curr_topic
-            prev_state = mask_others_lp_not_in_topic(curr_masteries, curr_topic, level)
-           
+            latest_masteries = ast.literal_eval(lastest_info.masteries)
+            prev_state = self.map_masteries_to_state(latest_masteries)
+            curr_masteries = self.update_masteries(user_name, latest_masteries, update_masteries)
+ 
         else: # new user  
+            try:
+                os.remove(join('history',f'{user_name}.csv'))
+            except:
+                pass
+            
+            for item in update_masteries:
+                test_masteries.update({item : update_masteries[item]})
+            
+            if write_new_masteries:
+                self.read_write_txt(user_name, test_masteries, mode="write")
             index = 0
-            curr_masteries = [0]*len(list_masteries)
+            curr_masteries = list(test_masteries.values())
             dataframe = None
             prev_state = None
-            curr_topic = None
             old_action = None
         
-        # Update value for masteries 
-        for key_masteries, v_masteries in update_masteries.items():
-            try:
-                id_ = list_masteries.index(int(key_masteries))
-                curr_masteries[id_] = int(v_masteries)
-            except:
-                print(f'Lession_ID {key_masteries} invalid')
-        
-        
-        # num_steps = len(history_action)
-
         episode_reward = 0
 
         exp_buffer = load_deque(student_ID, level)
 
-        # # Preprocess input
-        # curr_topic =  None
-        # try:
-        #     for k,v in database_parsed.items():
-        #         if history_action[-1] in v:
-        #             break
-        #     curr_topic = k
-        #     old_action = database_parsed[curr_topic].index(history_action[-1])
+        state = self.map_masteries_to_state(curr_masteries)
 
-        # except:
-        #     curr_topic = None
-        #     old_action = None
-        #     # prev_state = None
+        # Check complete course
+        if not 0.0 in state:
+            return student_ID, "Done"
 
-        # try:
-        #     prev_masteries = read_masteries(student_ID)
-        #     # prev_topic = list(history_action)[-2]
-        #     prev_state = mask_others_lp_not_in_topic(prev_masteries, curr_topic)
-        # except:
-        #     prev_state = None
-
-        # save_masteries(student_ID, level, curr_masteries)
-        
-        curr_topic = topic_recommender(curr_masteries, level, curr_topic)
-        state = mask_others_lp_not_in_topic(curr_masteries, curr_topic, level)
         
         ## Take action and store experience
         action = self.sess.run(self.actor_net.output, {self.state_ph:np.expand_dims(state, 0)})[0]     # Add batch dimension to single state input, and remove batch dimension from single action output
 
         # Calculate reward for prev_state
-        reward, terminal = self.env_wrapper.step_api(index, level, curr_topic, old_action, prev_state, history_score)
+        reward, terminal = self.env_wrapper.step_api(index, level, old_action, prev_state, history_score)
         
         episode_reward += reward 
                         
@@ -317,17 +318,17 @@ class Agent:
         if index % train_params.UPDATE_AGENT_EP == 0:
             self.sess.run(self.update_op)
         
-        action = int(self.mapping_action(action, state))
-        recommend_action = LESSON_DATABASE.get_data_parsed(level)[curr_topic][action]
-
-        log_history(index, student_ID, subject, level, curr_masteries, curr_topic, recommend_action, action, history_score[-1], dataframe)
+        action = int(self.find_nearest_action(action, state))
+        # recommend_action = LESSON_DATABASE.get_data_parsed(level)[curr_topic][action]
+        recommend_action = self.read_write_txt(user_name, mode='read')[action]
+        log_history(index, student_ID, subject, level, curr_masteries, recommend_action, action, history_score[-1], dataframe)
         gc.collect()
         
         
         return student_ID, recommend_action
 
 
-    def mapping_action(self, action, state ):
+    def find_nearest_action(self, action, state ):
         result = action
         if state[int(action)] == 1.0:
             list_zeroIndex = np.where(state == 0.0)[0]

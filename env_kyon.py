@@ -283,7 +283,7 @@ class SimStudent():
 
     return self._get_obs(segment_LPs)
 
-  def step_api(self, index, level, curr_topic, action, prev_state, history_score): 
+  def step_api(self, index, level, action, prev_state, history_score): 
     reward = 0
     done = False
     # lp_segment = LESSON_DATABASE.get_LPsegments(level)

@@ -4,3 +4,5 @@ logs/*
 __pycache__/
 *.log
 database/*
+history/
+firstTest_masteries/
