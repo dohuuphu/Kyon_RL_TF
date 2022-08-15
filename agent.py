@@ -145,9 +145,13 @@ class Agent:
                 action = self.sess.run(self.actor_net.output , {self.state_ph:np.expand_dims(state, 0)})[0]     # Add batch dimension to single state input, and remove batch dimension from single action output
                 action_prev = np.where(action == np.amax(action))[0]
                 action += (gaussian_noise() * train_params.NOISE_DECAY**num_eps)
+                if int(action) >= 20:
+                    action = np.array([19.0], dtype=np.float32)
+                elif int(action) < 0:
+                    action = np.array([0.0], dtype=np.float32)
                 # action = self.random_zeros_location(state=state)
                 action_ = np.where(action == np.amax(action))[0]
-                next_state, reward, terminal, curr_topic = self.env_wrapper.step(action, num_steps == train_params.MAX_EP_LENGTH)
+                next_state, reward, terminal = self.env_wrapper.step(action, num_steps == train_params.MAX_EP_LENGTH)
                 
                 episode_reward += reward 
                                
@@ -168,9 +172,6 @@ class Agent:
                     # If learner is requesting a pause (to remove samples from PER), wait before adding more samples
                     run_agent_event.wait()   
                     PER_memory.add(state_0, action_0, discounted_reward, next_state, terminal, gamma)
-
-                if terminal:
-                    next_state = self.env_wrapper.set_topicDone(curr_topic)
 
                 state = next_state
                 
@@ -193,7 +194,7 @@ class Agent:
                         PER_memory.add(state_0, action_0, discounted_reward, next_state, terminal, gamma)
                     
                     # Start next episode if all topic was passed
-                    ep_done = self.is_TopicsDone(state)
+                    ep_done = True
                 
             # Update agent networks with learner params every 'update_agent_ep' episodes
             if num_eps % train_params.UPDATE_AGENT_EP == 0:
@@ -414,7 +415,7 @@ class Agent:
                 temp = np.genfromtxt('./input.txt', dtype=np.float64)
                 action  = self.sess.run(self.actor_net.output, {self.state_ph:np.expand_dims(state, 0)})[0] # Add batch dimension to single state input, and remove batch dimension from single action output
                 action = self.mapping_action(action, state)
-                state, reward, terminal, _ = self.env_wrapper.step(action, step == test_params.MAX_EP_LENGTH)
+                state, reward, terminal = self.env_wrapper.step(action, step == test_params.MAX_EP_LENGTH)
                 state = self.env_wrapper.normalise_state(state)
                 
                 ep_reward += reward
